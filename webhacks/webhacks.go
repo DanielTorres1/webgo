@@ -53,7 +53,11 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 
 	// Create a custom HTTP transport that ignores SSL certificate errors
     httpTransport := &http.Transport{
-        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+        TLSClientConfig: &tls.Config{
+            InsecureSkipVerify: true,
+            MinVersion: tls.VersionTLS10,
+			//MaxVersion: tls.VersionTLS12,
+        },
     }
 
     httpClient := &http.Client{
@@ -116,14 +120,16 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	status := ""
 	newDomain := ""
 	lastURL := ""
+	vulnerability := ""
 
 	for redirectURL != "" {
 		if debug {
+			fmt.Printf("currentURL (%s)\n", currentURL)
 			fmt.Printf("redirect_url en WHILE1 (%s)\n", redirectURL)
 		}
 		resp, err = wh.Dispatch(currentURL, "GET", wh.Headers)
-		if err != nil {
-			return nil, err
+		if err != nil {			
+			fmt.Printf("Error %s \n", err)
 		}
 		lastURL = resp.Request.URL.String()
 		status = resp.Status
@@ -146,7 +152,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		domainOriginal := origURL.Hostname()
 		domainFinal := finalURL.Hostname()
 		if debug {
-			fmt.Println("currentURL:", currentURL)
 			fmt.Printf("domain_original %s domain_final %s\n", domainOriginal, domainFinal)
 			fmt.Printf("url_original %s last_url %s\n", urlOriginal, lastURL)
 		}
@@ -166,6 +171,19 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		decodedResponse = regexp.MustCompile(".*index.html*").ReplaceAllString(decodedResponse, "")
 		decodedResponse = regexp.MustCompile(".*?console*").ReplaceAllString(decodedResponse, "")
 
+		
+		
+		//###### check redirect with content ##########
+		responseLength := len(decodedResponse)
+		if resp.StatusCode >= 300 && resp.StatusCode <= 399 && responseLength > 900 {
+			vulnerability = "Redirect with content|"
+			//break
+		}
+		if debug {
+			fmt.Printf("responseLength %d \n", responseLength)
+		}
+		//#####################################
+		
 		redirectURL = getRedirect(decodedResponse)
 		if debug {
 			fmt.Printf("redirect_url (%s)\n", redirectURL)
@@ -207,7 +225,8 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	decodedResponse = regexp.MustCompile("postmaster@example.com").ReplaceAllString(decodedResponse, "")
 
 	// ######## vulnerability ######
-	vulnerability := checkVuln(decodedResponse)
+	vulnerability = vulnerability + checkVuln(decodedResponse)
+	
 	if debug {
 		fmt.Printf("vulnerability %s\n", vulnerability)
 	}
@@ -228,14 +247,14 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 	// ############### title ########
 	title := ""
-	re := regexp.MustCompile(`<title>(.*?)</title>`)
+	re := regexp.MustCompile(`(?i)<title>(.*?)</title>`)
 	titleMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(titleMatch) > 1 {
 		title = titleMatch[1]
 	}
 
 	if title == "" {
-		re = regexp.MustCompile(`<title>\s*(.*?)\s*</title>`)
+		re = regexp.MustCompile(`(?i)<title>\s*(.*?)\s*</title>`)
 		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
 		if len(titleMatch) > 1 {
 			title = titleMatch[1]
@@ -243,7 +262,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	}
 
 	if title == "" {
-		re = regexp.MustCompile(`<title(.*?)\n`)
+		re = regexp.MustCompile(`(?i)<title(.*?)\n`)
 		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
 		if len(titleMatch) > 1 {
 			title = titleMatch[1]
@@ -251,7 +270,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	}
 
 	if title == "" {
-		re = regexp.MustCompile(`Title:(.*?)\n`)
+		re = regexp.MustCompile(`(?i)Title:(.*?)\n`)
 		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
 		if len(titleMatch) > 1 {
 			title = titleMatch[1]
@@ -259,7 +278,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	}
 
 	if title == "" {
-		re = regexp.MustCompile(`>(.*?)</title>`)
+		re = regexp.MustCompile(`(?i)>(.*?)</title>`)
 		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
 		if len(titleMatch) > 1 {
 			title = titleMatch[1]
@@ -267,7 +286,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	}
 
 	if title == "" {
-		re = regexp.MustCompile(`\n(.*?)\n</title>`)
+		re = regexp.MustCompile(`(?i)\n(.*?)\n</title>`)
 		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
 		if len(titleMatch) > 1 {
 			title = titleMatch[1]
@@ -341,7 +360,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	
 	// ########## server ########
 	server := ""
-	re = regexp.MustCompile(`Server:(.*?)\n`)
+	re = regexp.MustCompile(`(?i)Server:(.*?)\n`)
 	serverMatch := re.FindStringSubmatch(responseHeaders)
 	if len(serverMatch) > 1 {
 		server = serverMatch[1]
@@ -367,7 +386,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     juniperPattern := regexp.MustCompile(`(?i)Juniper Web Device Manager`)
     ciscoWebUIPattern := regexp.MustCompile(`(?i)by Cisco Systems, Inc`)
     routerOSPattern := regexp.MustCompile(`(?i)RouterOS router`)
-    headerTitlePattern := regexp.MustCompile(`\<h1\>(.*?)\<\/h1\>`)
+	headerTitlePattern := regexp.MustCompile(`\<h1\>(.*?)\<\/h1\>`)
 
     if ciscoLogoutPattern.MatchString(decodedHeaderResponse) || ciscoUnifiedPattern.MatchString(decodedHeaderResponse) {
         server = "Cisco Router"
@@ -410,11 +429,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	
 
 	// ############# powered by ##############
-	re = regexp.MustCompile(`X-Powered-By:(.*?)\n`)
+	re = regexp.MustCompile(`(?i)X-Powered-By:(.*?)\n`)
 	poweredByMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(poweredByMatch) > 1 {
 		pwdby := poweredByMatch[1]
-		fmt.Printf("pwdby %s\n", pwdby)
+		//fmt.Printf("pwdby %s\n", pwdby)
 		poweredBy += pwdby
 	}
 
@@ -422,7 +441,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		poweredBy += "|Laravel"
 	}
 
-	re = regexp.MustCompile(`name="geo.placename" content="(.*?)"`)
+	re = regexp.MustCompile(`(?i)name="geo.placename" content="(.*?)"`)
 	geoMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(geoMatch) > 1 {
 		geo := geoMatch[1]
@@ -431,12 +450,12 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-	re = regexp.MustCompile(`name="Generator" content="(.*?)"`)
+	re = regexp.MustCompile(`(?i)<meta name="generator" content="([^"]+)"`)
 	generatorMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(generatorMatch) > 1 {
 		generator := generatorMatch[1]
 
-		re = regexp.MustCompile(`name="Version" content="(.*?)"`)
+		re = regexp.MustCompile(`(?i)name="Version" content="(.*?)"`)
 		versionMatch := re.FindStringSubmatch(decodedHeaderResponse)
 		if len(versionMatch) > 1 {
 			version := versionMatch[1]
@@ -448,7 +467,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-	re = regexp.MustCompile(`name="description" content="(.*?)"`)
+	re = regexp.MustCompile(`(?i)name="description" content="(.*?)"`)
 	descriptionMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(descriptionMatch) > 1 {
 		description := descriptionMatch[1]
@@ -457,7 +476,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			poweredBy += "| description=" + description
 		}
 	} else {
-		re = regexp.MustCompile(`X-Meta-Description:(.*?)\n`)
+		re = regexp.MustCompile(`(?i)X-Meta-Description:(.*?)\n`)
 		descriptionMatch = re.FindStringSubmatch(decodedHeaderResponse)
 		if len(descriptionMatch) > 1 {
 			description := descriptionMatch[1]
@@ -468,7 +487,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-	re = regexp.MustCompile(`name="author" content="(.*?)"`)
+	re = regexp.MustCompile(`(?i)name="author" content="(.*?)"`)
 	authorMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(authorMatch) > 1 {
 		author := authorMatch[1]
@@ -477,7 +496,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			poweredBy += "| author=" + author
 		}
 	} else {
-		re = regexp.MustCompile(`X-Meta-Author:(.*?)\n`)
+		re = regexp.MustCompile(`(?i)X-Meta-Author:(.*?)\n`)
 		authorMatch = re.FindStringSubmatch(decodedHeaderResponse)
 		if len(authorMatch) > 1 {
 			author := authorMatch[1]
@@ -488,7 +507,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-	re = regexp.MustCompile(`X-AspNet-Version:(.*?)\n`)
+	re = regexp.MustCompile(`(?i)X-AspNet-Version:(.*?)\n`)
 	langVersionMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(langVersionMatch) > 1 {
 		langVersion := langVersionMatch[1]
@@ -497,7 +516,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-	re = regexp.MustCompile(`Via:(.*?)\n`)
+	re = regexp.MustCompile(`(?i)Via:(.*?)\n`)
 	proxyMatch := re.FindStringSubmatch(responseHeaders)
 	if len(proxyMatch) > 1 {
 		proxy := proxyMatch[1]
@@ -506,7 +525,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-	re = regexp.MustCompile(`WWW-Authenticate:(.*?)\n`)
+	re = regexp.MustCompile(`(?i)WWW-Authenticate:(.*?)\n`)
 	authenticateMatch := re.FindStringSubmatch(responseHeaders)
 	if len(authenticateMatch) > 1 {
 		authenticate := authenticateMatch[1]
@@ -515,7 +534,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-	re = regexp.MustCompile(`jquery.js\?ver=(.*?)"`)
+	re = regexp.MustCompile(`(?i)jquery.js\?ver=(.*?)"`)
 	jqueryMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(jqueryMatch) > 1 {
 		jquery := jqueryMatch[1]
@@ -524,7 +543,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 		poweredBy += "| JQuery " + jquery
 	} else {
-		re = regexp.MustCompile(`jquery/(\d+).(\d+).`)
+		re = regexp.MustCompile(`(?i)jquery/(\d+).(\d+).`)
 		jqueryMatch = re.FindStringSubmatch(decodedHeaderResponse)
 		if len(jqueryMatch) > 2 {
 			jquery1 := jqueryMatch[1]
@@ -547,7 +566,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-	re = regexp.MustCompile(`>([\w\s]+)</h1>`)
+	re = regexp.MustCompile(`<h1[^>]*>(.*?)</h1>`)
 	h1Match := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(h1Match) > 1 {
 		h1 := strings.ReplaceAll(h1Match[1], "\n", " ")
@@ -1003,7 +1022,7 @@ func checkVuln(decodedContent string) string {
 		vuln = "contenidoPrueba"
 	}
 
-	if regexp.MustCompile(`DEBUG = True|app/controllers|SERVER_ADDR|REMOTE_ADDR|DOCUMENT_ROOT/|TimeoutException|vendor/laravel/framework/src/Illuminate`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)DEBUG = True|app/controllers|SERVER_ADDR|REMOTE_ADDR|DOCUMENT_ROOT/|TimeoutException|vendor/laravel/framework/src/Illuminate`).MatchString(decodedContent) {
 		vuln = "debugHabilitado"
 	}
 
@@ -1027,7 +1046,7 @@ func checkVuln(decodedContent string) string {
 		vuln = "ExposicionUsuarios"
 	}
 
-	if regexp.MustCompile(`Directory of|Index of|Parent directory`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)Directory of|Index of|Parent directory`).MatchString(decodedContent) {
 		vuln = "ListadoDirectorios"
 	}
 
