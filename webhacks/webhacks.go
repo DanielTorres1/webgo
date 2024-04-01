@@ -1063,11 +1063,11 @@ func checkVuln(decodedContent string) string {
 	}
 
 	if regexp.MustCompile(`(?m)/user/register|registerform|member-registration`).MatchString(decodedContent) {
-		vuln = "Registro habilitado"
+		vuln = "RegistroHabilitado"
 	}
 
 	if decodedContent == "" {
-		vuln = "Archivo vacio"
+		vuln = "ArchivoVacio"
 	}
 
 	return vuln
