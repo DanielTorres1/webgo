@@ -831,10 +831,11 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 
 				
 				if (show404 && current_status == 404) || current_status != 404 {
+					vuln := ""
 					if  current_status == 200 {
-						vuln := checkVuln(bodyContent)
+						vuln = checkVuln(bodyContent)
 					}
-					
+
 					if vuln != "" {
 						fmt.Printf("%d \t %s (%s)\n", current_status, urlLine, vuln)
 					} else {
