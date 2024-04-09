@@ -1,0 +1,3 @@
+index.php?r=usuario/
+index.php?r=usuario/view&id=1
+debug/default/view?panel=log

@@ -41,12 +41,13 @@ graph
 graphiql
 graphiql.php
 graphql
+wp-register.php
+user/register
 graphql/console/
 graphql.php
+debug/default/view?panel=log
 .hg/
 include/config.inc
-index.php?r=usuario/
-index.php?r=usuario/view&id=1
 IoMgmt/Adapters/wifi0/WPS/Pin
 jquery-file-upload/server/php/index.php
 lib/filemanager/

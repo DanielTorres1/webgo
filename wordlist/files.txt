@@ -1,5 +1,6 @@
 1.sql
 1.tar.gz
+password/reset
 1.zip
 2016.rar
 2016.sql

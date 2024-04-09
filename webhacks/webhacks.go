@@ -632,7 +632,10 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|FortiGate"
         server = "FortiGate"
     }
-    if regexp.MustCompile(`www.drupal.org`).MatchString(decodedHeaderResponse) {
+    if regexp.MustCompile(`yii-debug-toolbar`).MatchString(decodedHeaderResponse) {
+        poweredBy += "|Yii"
+    }
+	if regexp.MustCompile(`www.drupal.org`).MatchString(decodedHeaderResponse) {
         poweredBy += "|drupal"
     }
     if regexp.MustCompile(`laravel_session`).MatchString(decodedHeaderResponse) {
@@ -1042,7 +1045,11 @@ func checkVuln(decodedContent string) string {
 		vuln = "OpenMikrotik"
 	}
 
-	if regexp.MustCompile(`(?i)undefined function|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Stack trace|Exception information|E_WARNING`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)undefined function|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Stack trace|Exception information`).MatchString(decodedContent) {
+		vuln = "MensajeError"
+	}
+
+	if regexp.MustCompile(`E_WARNING`).MatchString(decodedContent) { //mayuscula
 		vuln = "MensajeError"
 	}
 

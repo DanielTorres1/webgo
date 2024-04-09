@@ -190,9 +190,7 @@ phperrors.log
 php-findsock-shell.php
 /php-fpm/error.log
 /php-fpm/www-error.log
-?phpinfo
 phpinfo
-?phpinfo=1
 php-info.php
 phpinfo.php
 phpinfo.php3
@@ -281,7 +279,6 @@ WEB-INF/web.xml
 webtop.log
 web.xml
 wp-app.log
-/wp-content/debug.log
 wp-content/debug.log
 ws_ftp.ini
 WS_FTP.ini
