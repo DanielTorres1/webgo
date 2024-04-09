@@ -628,6 +628,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     if regexp.MustCompile(`AMLC COMPLIANCE`).MatchString(decodedHeaderResponse) {
         poweredBy += "|AMLC COMPLIANCE"
     }
+
+	if regexp.MustCompile(`XSRF-TOKEN|_session`).MatchString(decodedHeaderResponse) {
+		poweredBy += "|api-endpoint"
+	}
+	
     if regexp.MustCompile(`FortiGate`).MatchString(decodedHeaderResponse) {
         poweredBy += "|FortiGate"
         server = "FortiGate"

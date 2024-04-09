@@ -127,6 +127,8 @@ func main() {
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/iis.txt", "")
 	case "sharepoint":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/sharepoint.txt", "")
+	case "api":
+        webHacks.Dirbuster("/usr/share/webhacks/wordlist/api.txt", "")
 	case "tomcat":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/tomcat.txt", "")
 	case "custom":

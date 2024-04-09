@@ -53,6 +53,7 @@ EXTGenerator.asmx
 getbasketdata.asmx
 GetBasketData.asmx
 search.asmx
+WSSGA/Service.asmx?WSDL
 Service.asmx
 Shoppingws.asmx
 stockquote.asmx
