@@ -1,6 +1,7 @@
 0admin/
 1admin/
 2phpmyadmin/
+ajax/app/custom/users/loginPanelHome
 acceso/
 acceso.asp
 acceso.js
