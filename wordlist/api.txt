@@ -1396,7 +1396,6 @@ references
 reg
 reginternal
 regional
-register
 registered
 registration
 reklama
