@@ -804,7 +804,14 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 			urlLine += "/"
 		}
 		
-		urlFinal := proto + "://" + rhost + ":" + rport + path + urlLine
+		//adicionar puerto solo si es diferente a 80 o 443
+		portStr := ""
+		if rport != 80 && rport != 443 {
+			portStr = ":" + strconv.Itoa(rport)
+		}
+
+		urlFinal := proto + "://" + rhost + portStr + path + urlLine
+
 		links = append(links, urlFinal)
 	}
 
