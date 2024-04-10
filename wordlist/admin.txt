@@ -9,6 +9,14 @@ acceso.php
 account.asp
 account.html
 wp-login.php
+logging
+Login
+loginadmin
+logins
+Logins
+logo
+logon
+logos
 account.js
 account.php
 _adm/

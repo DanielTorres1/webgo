@@ -6,6 +6,7 @@ admin.php
 storage/logs/
 pswa/en-US/logon.aspx
 pswa
+reset
 vendor
 api
 telescope
@@ -43,6 +44,7 @@ graphiql.php
 graphql
 wp-register.php
 user/register
+register
 graphql/console/
 graphql.php
 debug/default/view?panel=log

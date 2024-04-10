@@ -605,7 +605,6 @@ FAQ
 faq
 faqs
 fashion
-favicon.ico
 favorites
 fcgi-bin
 feature
@@ -988,15 +987,6 @@ Log
 logfile
 logfiles
 logger
-logging
-login
-Login
-loginadmin
-logins
-Logins
-logo
-logon
-logos
 logout
 logs
 Logs
@@ -1429,7 +1419,6 @@ Research
 research
 reseller
 resellers
-reset
 resource
 Resources
 resources
