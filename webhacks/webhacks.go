@@ -104,15 +104,15 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	// }
 
 	poweredBy := ""
-	var urlOriginal string
-	if rport == "80" || rport == "443" {
-		urlOriginal = proto + "://" + rhost + path
-	} else {
-		urlOriginal = proto + "://" + rhost + ":" + rport + path
-	}
+	// var urlOriginal string
+	// if rport == "80" || rport == "443" {
+	// 	urlOriginal = proto + "://" + rhost + path
+	// } else {
+	// 	urlOriginal = proto + "://" + rhost + ":" + rport + path
+	// }
 
 	redirectURL := "no"
-	currentURL := urlOriginal
+	urlOriginal := proto + "://" + rhost + ":" + rport + path
 	var finalURLRedirect string
 	var decodedResponse string
 	var resp *http.Response 
@@ -124,10 +124,10 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 	for redirectURL != "" {
 		if debug {
-			fmt.Printf("currentURL (%s)\n", currentURL)
+			fmt.Printf("urlOriginal (%s)\n", urlOriginal)
 			fmt.Printf("redirect_url en WHILE1 (%s)\n", redirectURL)
 		}
-		resp, err = wh.Dispatch(currentURL, "GET", wh.Headers)
+		resp, err = wh.Dispatch(urlOriginal, "GET", wh.Headers)
 		if err != nil {			
 			fmt.Printf("Error %s \n", err)
 		}
@@ -207,10 +207,10 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			if debug {
 				fmt.Printf("final_url_redirect %s\n", finalURLRedirect)
 			}
-			currentURL = finalURLRedirect
+			urlOriginal = finalURLRedirect
 		}
 		if debug {
-			fmt.Printf("currentURL en WHILE2 %s\n", currentURL)
+			fmt.Printf("urlOriginal en WHILE2 %s\n", urlOriginal)
 		}
 	} //end for
 
@@ -304,59 +304,57 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	}
 
 
-	boaPattern := regexp.MustCompile(`(?i)Boa\/0.9`)
-    idracPattern := regexp.MustCompile(`(?i)idrac`)
-    accessDeniedPattern := regexp.MustCompile(`(?i)Acceso no autorizado`)
-    hikvisionPattern := regexp.MustCompile(`(?i)Hikvision Digital`)
-    hikvisionErrorPattern := regexp.MustCompile(`(?i)szErrorTip`)
-    freeNASPattern := regexp.MustCompile(`(?i)FreeNAS`)
-    ciscoUserPattern := regexp.MustCompile(`(?i)ciscouser`)
-    pfsensePattern := regexp.MustCompile(`(?i)pfsense-logo`)
-    sapPattern := regexp.MustCompile(`(?i)servletBridgeIframe`)
-    bodyCamPattern := regexp.MustCompile(`(?i)content="Babelstar"`)
-    dellIdracPattern := regexp.MustCompile(`(?i)login to iDRAC`)
-    ciscoPattern := regexp.MustCompile(`(?i)Cisco`)
-    peplinkPattern := regexp.MustCompile(`(?i)portal.peplink.com`)
+	if regexp.MustCompile(`(?i)Boa\/0.9`).MatchString(decodedHeaderResponse) {
+		if title == "" {
+			title = "Broadband device web server"
+		}
+	}
+	
+	if regexp.MustCompile(`(?i)idrac`).MatchString(decodedHeaderResponse) {
+		title = "Dell iDRAC"
+	}
+	
+	if regexp.MustCompile(`(?i)Acceso no autorizado`).MatchString(decodedHeaderResponse) {
+		if title == "" {
+			title = "Acceso no autorizado"
+		}
+	}
+	
+	if regexp.MustCompile(`(?i)Hikvision Digital`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)szErrorTip`).MatchString(decodedHeaderResponse) {
+		title = "Hikvision Digital"
+	}
+	
+	if regexp.MustCompile(`(?i)FreeNAS`).MatchString(decodedHeaderResponse) {
+		title = "FreeNAS"
+	}
+	
+	if regexp.MustCompile(`(?i)ciscouser`).MatchString(decodedHeaderResponse) {
+		title = "Cisco switch"
+	}
+	
+	if regexp.MustCompile(`(?i)pfsense-logo`).MatchString(decodedHeaderResponse) {
+		title = "Pfsense"
+	}
+	
+	if regexp.MustCompile(`(?i)servletBridgeIframe`).MatchString(decodedHeaderResponse) {
+		title = "SAP Business Objects"
+	}
+	
+	if regexp.MustCompile(`(?i)content="Babelstar"`).MatchString(decodedHeaderResponse) {
+		title = "Body Cam"
+	}
+	
+	if regexp.MustCompile(`(?i)login to iDRAC`).MatchString(decodedHeaderResponse) && !regexp.MustCompile(`(?i)Cisco`).MatchString(decodedHeaderResponse) {
+		title = "Dell iDRAC"
+	}
+	
+	if regexp.MustCompile(`(?i)portal.peplink.com`).MatchString(decodedHeaderResponse) {
+		title = "Web Admin PepLink"
+	}
 
-    // Check for patterns and update title
-    if boaPattern.MatchString(decodedHeaderResponse) {
-        if title == "" {
-            title = "Broadband device web server"
-        }
-    }
-    if idracPattern.MatchString(decodedHeaderResponse) {
-        title = "Dell iDRAC"
-    }
-    if accessDeniedPattern.MatchString(decodedHeaderResponse) {
-        if title == "" {
-            title = "Acceso no autorizado"
-        }
-    }
-    if hikvisionPattern.MatchString(decodedHeaderResponse) || hikvisionErrorPattern.MatchString(decodedHeaderResponse) {
-        title = "Hikvision Digital"
-    }
-    if freeNASPattern.MatchString(decodedHeaderResponse) {
-        title = "FreeNAS"
-    }
-    if ciscoUserPattern.MatchString(decodedHeaderResponse) {
-        title = "Cisco switch"
-    }
-    if pfsensePattern.MatchString(decodedHeaderResponse) {
-        title = "Pfsense"
-    }
-    if sapPattern.MatchString(decodedHeaderResponse) {
-        title = "SAP Business Objects"
-    }
-    if bodyCamPattern.MatchString(decodedHeaderResponse) {
-        title = "Body Cam"
-    }
-    if dellIdracPattern.MatchString(decodedHeaderResponse) && !ciscoPattern.MatchString(decodedHeaderResponse) {
-        title = "Dell iDRAC"
-    }
-    if peplinkPattern.MatchString(decodedHeaderResponse) {
-        title = "Web Admin PepLink"
-    }
-	// ##############
+	if regexp.MustCompile(`(?i)This is the default web page for this server.`).MatchString(decodedHeaderResponse) {
+		title = "Apache default page"
+	}
 	
 	// ########## server ########
 	server := ""
@@ -369,63 +367,44 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-	ciscoLogoutPattern := regexp.MustCompile(`(?i)You have logged out of the Cisco Router|Cisco RV340 Configuration Utility`)
-    ciscoUnifiedPattern := regexp.MustCompile(`(?i)Cisco Unified Communications`)
-    ciscoASAPattern := regexp.MustCompile(`(?i)CSCOE`)
-    ciscoEPNPattern := regexp.MustCompile(`(?i)Cisco EPN Manage`)
-    oltPattern := regexp.MustCompile(`(?i)OLT Web Management Interface`)
-    janusPattern := regexp.MustCompile(`(?i)Janus WebRTC Server`)
-    huaweiPattern := regexp.MustCompile(`(?i)ui_huawei_fw_ver`)
-    tpLinkPattern := regexp.MustCompile(`(?i)mbrico N 300Mbps WR840N`)
-    dahuaPattern1 := regexp.MustCompile(`(?i)custom_logo/web_logo.png|baseProj/images/favicon.ico`)
-    dahuaPattern2 := regexp.MustCompile(`(?i)webplugin.exe|BackUpBeginTimeChanged|playback_bottom_bar`)
-    dahuaPattern3 := regexp.MustCompile(`(?i)WEB SERVICE`)
-    hpPrinterPattern := regexp.MustCompile(`(?i)pgm-theatre-staging-div`)
-    mdsOrbitPattern := regexp.MustCompile(`(?i)login/bower_components/requirejs/require.js`)
-    atenPattern := regexp.MustCompile(`(?i)ATEN International Co`)
-    juniperPattern := regexp.MustCompile(`(?i)Juniper Web Device Manager`)
-    ciscoWebUIPattern := regexp.MustCompile(`(?i)by Cisco Systems, Inc`)
-    routerOSPattern := regexp.MustCompile(`(?i)RouterOS router`)
-	headerTitlePattern := regexp.MustCompile(`\<h1\>(.*?)\<\/h1\>`)
 
-    if ciscoLogoutPattern.MatchString(decodedHeaderResponse) || ciscoUnifiedPattern.MatchString(decodedHeaderResponse) {
-        server = "Cisco Router"
-    } else if ciscoUnifiedPattern.MatchString(decodedHeaderResponse) {
-        server = "Cisco Unified Communications"
-    } else if ciscoASAPattern.MatchString(decodedHeaderResponse) {
-        server = "ciscoASA"
-    } else if ciscoEPNPattern.MatchString(decodedHeaderResponse) {
-        server = "Cisco EPN Manage"
-    } else if oltPattern.MatchString(decodedHeaderResponse) {
-        server = "OLT Web Management Interface"
-    } else if janusPattern.MatchString(decodedHeaderResponse) {
-        server = "Janus WebRTC Server"
-    } else if huaweiPattern.MatchString(decodedHeaderResponse) {
-        server = "Huawei"
-    } else if tpLinkPattern.MatchString(decodedHeaderResponse) {
-        server = "TL-WR840N"
-        title = "Router inalámbrico N 300Mbps WR840N"
-    } else if (dahuaPattern1.MatchString(decodedHeaderResponse) || dahuaPattern2.MatchString(decodedHeaderResponse)) && dahuaPattern3.MatchString(decodedHeaderResponse) {
-        server = "Dahua"
-    } else if dahuaPattern2.MatchString(decodedHeaderResponse) {
-        server = "Dahua"
-    } else if hpPrinterPattern.MatchString(decodedHeaderResponse) {
-        server = "printer HP laser"
-    } else if mdsOrbitPattern.MatchString(decodedHeaderResponse) {
-        server = "MDS Orbit Device Manager "
-    } else if atenPattern.MatchString(decodedHeaderResponse) {
-        server = "Super micro"
-    } else if juniperPattern.MatchString(decodedHeaderResponse) {
-        server = "Juniper Web Device Manager"
-    } else if ciscoWebUIPattern.MatchString(decodedHeaderResponse) {
-        server = "Cisco WebUI"
-    } else if routerOSPattern.MatchString(decodedHeaderResponse) {
-        matches := headerTitlePattern.FindStringSubmatch(decodedHeaderResponse)
-        if len(matches) > 1 {
-            server = matches[1]
-        }
-    }
-	//###########
+	if regexp.MustCompile(`(?i)You have logged out of the Cisco Router|Cisco RV340 Configuration Utility`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
+		server = "Cisco Router"
+	} else if regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
+		server = "Cisco Unified Communications"
+	} else if regexp.MustCompile(`(?i)CSCOE`).MatchString(decodedHeaderResponse) {
+		server = "ciscoASA"
+	} else if regexp.MustCompile(`(?i)Cisco EPN Manage`).MatchString(decodedHeaderResponse) {
+		server = "Cisco EPN Manage"
+	} else if regexp.MustCompile(`(?i)OLT Web Management Interface`).MatchString(decodedHeaderResponse) {
+		server = "OLT Web Management Interface"
+	} else if regexp.MustCompile(`(?i)Janus WebRTC Server`).MatchString(decodedHeaderResponse) {
+		server = "Janus WebRTC Server"
+	} else if regexp.MustCompile(`(?i)ui_huawei_fw_ver`).MatchString(decodedHeaderResponse) {
+		server = "Huawei"
+	} else if regexp.MustCompile(`(?i)mbrico N 300Mbps WR840N`).MatchString(decodedHeaderResponse) {
+		server = "TL-WR840N"
+		title = "Router inalámbrico N 300Mbps WR840N"
+	} else if (regexp.MustCompile(`(?i)custom_logo/web_logo.png|baseProj/images/favicon.ico`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)webplugin.exe|BackUpBeginTimeChanged|playback_bottom_bar`).MatchString(decodedHeaderResponse)) && regexp.MustCompile(`(?i)WEB SERVICE`).MatchString(decodedHeaderResponse) {
+		server = "Dahua"
+	} else if regexp.MustCompile(`(?i)webplugin.exe|BackUpBeginTimeChanged|playback_bottom_bar`).MatchString(decodedHeaderResponse) {
+		server = "Dahua"
+	} else if regexp.MustCompile(`(?i)pgm-theatre-staging-div`).MatchString(decodedHeaderResponse) {
+		server = "printer HP laser"
+	} else if regexp.MustCompile(`(?i)login/bower_components/requirejs/require.js`).MatchString(decodedHeaderResponse) {
+		server = "MDS Orbit Device Manager "
+	} else if regexp.MustCompile(`(?i)ATEN International Co`).MatchString(decodedHeaderResponse) {
+		server = "Super micro"
+	} else if regexp.MustCompile(`(?i)Juniper Web Device Manager`).MatchString(decodedHeaderResponse) {
+		server = "Juniper Web Device Manager"
+	} else if regexp.MustCompile(`(?i)by Cisco Systems, Inc`).MatchString(decodedHeaderResponse) {
+		server = "Cisco WebUI"
+	} else if regexp.MustCompile(`(?i)RouterOS router`).MatchString(decodedHeaderResponse) {
+		matches := regexp.MustCompile(`<h1>(.*?)</h1>`).FindStringSubmatch(decodedHeaderResponse)
+		if len(matches) > 1 {
+			server = matches[1]
+		}
+	}
 	
 
 	// ############# powered by ##############
@@ -805,12 +784,12 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 		}
 		
 		//adicionar puerto solo si es diferente a 80 o 443
-		portStr := ""
-		if rport != 80 && rport != 443 {
-			portStr = ":" + strconv.Itoa(rport)
-		}
+		// portStr := ""
+		// if rport != 80 && rport != 443 {
+		// 	portStr = ":" + strconv.Itoa(rport)
+		// }
 
-		urlFinal := proto + "://" + rhost + portStr + path + urlLine
+		urlFinal := proto + "://" + rhost + ":" + rport + path + urlLine
 
 		links = append(links, urlFinal)
 	}
@@ -889,6 +868,7 @@ func onlyAscii(text string) string {
 }
 
 func (wh *WebHacks) Backupbuster(urlFile string) {
+	headers := wh.Headers
 	debug := wh.Debug
 	show404 := wh.Show404
 	rhost := wh.Rhost
@@ -927,8 +907,7 @@ func (wh *WebHacks) Backupbuster(urlFile string) {
 				backupURL := fmt.Sprintf(backup, urlLine)
 				backupURL = url.PathEscape(backupURL)
 				finalURL := proto + "://" + rhost + ":" + rport + path + backupURL
-
-				resp, err := http.Get(finalURL) // Simplified HTTP GET request
+				resp, err := wh.Dispatch(finalURL, "GET", headers)
 				if debug {
 					if err != nil {
 						fmt.Println("Error fetching URL:", finalURL)
