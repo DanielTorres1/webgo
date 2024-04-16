@@ -43,54 +43,49 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
     userAgents := []string{
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36",
-        "Mozilla/5.0 (iPad; CPU OS 13_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.2 Mobile/15E148 Safari/604.1",
+        // ... other user agents
     }
 
     // Select a User-Agent randomly.
     selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
 
-	// Create a custom HTTP transport that ignores SSL certificate errors
+    // Create a custom HTTP transport that ignores SSL certificate errors
     httpTransport := &http.Transport{
         TLSClientConfig: &tls.Config{
             InsecureSkipVerify: true,
-            MinVersion: tls.VersionTLS10,
-			//MaxVersion: tls.VersionTLS12,
+            MinVersion:         tls.VersionTLS10,
         },
     }
 
     httpClient := &http.Client{
-		Transport: httpTransport,
-		Timeout:   time.Duration(timeoutInSeconds) * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= MaxRedirect {
-				return http.ErrUseLastResponse // Stop after MaxRedirect
-			}
-			return nil // Allow the redirect
-		},
-	}
+        Transport: httpTransport,
+        Timeout:   time.Duration(timeoutInSeconds) * time.Second, // Set the timeout for individual requests
+        CheckRedirect: func(req *http.Request, via []*http.Request) error {
+            if len(via) >= MaxRedirect {
+                return http.ErrUseLastResponse // Stop after MaxRedirect
+            }
+            return nil // Allow the redirect
+        },
+    }
 
     wh := &WebHacks{
-        Client:  httpClient,
-        Headers: http.Header{},
-        Timeout: timeoutInSeconds,
-		MaxRedirect: MaxRedirect,
+        Client:       httpClient,
+        Headers:      http.Header{},
+        Timeout:      timeoutInSeconds,
+        MaxRedirect:  MaxRedirect,
     }
 
     // Configure headers
     wh.Headers.Set("User-Agent", selectedUserAgent)
-	wh.Headers.Set("Cache-Control", "max-age=0")
-	wh.Headers.Set("Accept", "*/*")
-	wh.Headers.Set("DNT", "1")
-
-	if wh.Ajax {
-		wh.Headers.Set("X-Requested-With", "XmlHttpRequest")
-	}
+    wh.Headers.Set("Cache-Control", "max-age=0")
+    wh.Headers.Set("Accept", "*/*")
+    wh.Headers.Set("DNT", "1")
+    if wh.Ajax {
+        wh.Headers.Set("X-Requested-With", "XmlHttpRequest")
+    }
 
     return wh
 }
-
 
 func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	debug := wh.Debug
@@ -212,8 +207,12 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		if debug {
 			fmt.Printf("urlOriginal en WHILE2 %s\n", urlOriginal)
 		}
-	} //end for
 
+		if redirectURL == "/" { //para que salga del buble for
+			redirectURL = ""
+		}
+		
+	} //end for
 	responseHeaders := headerToString(resp.Header)
 	decodedHeaderResponse := responseHeaders + "\n" + decodedResponse
 	decodedResponse = strings.ReplaceAll(decodedResponse, "'", "\"")
