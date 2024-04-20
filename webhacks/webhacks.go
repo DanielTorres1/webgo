@@ -1059,6 +1059,10 @@ func checkVuln(decodedContent string) string {
 		vuln = "IPinterna"
 	}
 
+	if regexp.MustCompile(`(?i)"password":`).MatchString(decodedContent) {
+		vuln = "PasswordDetected"
+	}
+
 	if regexp.MustCompile(`(?i)r=usuario/create`).MatchString(decodedContent) {
 		vuln = "ExposicionUsuarios"
 	}
