@@ -398,6 +398,9 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		server = "Juniper Web Device Manager"
 	} else if regexp.MustCompile(`(?i)by Cisco Systems, Inc`).MatchString(decodedHeaderResponse) {
 		server = "Cisco WebUI"
+	} else if regexp.MustCompile(`(?i)fortinet|FortiWeb`).MatchString(decodedHeaderResponse) {
+		server = "FortiWeb"
+		
 	} else if regexp.MustCompile(`(?i)RouterOS router`).MatchString(decodedHeaderResponse) {
 		matches := regexp.MustCompile(`<h1>(.*?)</h1>`).FindStringSubmatch(decodedHeaderResponse)
 		if len(matches) > 1 {
