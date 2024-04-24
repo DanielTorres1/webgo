@@ -207,10 +207,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		if debug {
 			fmt.Printf("urlOriginal en WHILE2 %s\n", urlOriginal)
 		}
-
-		if redirectURL == "/" { //para que salga del buble for
-			redirectURL = ""
-		}
 		
 	} //end for
 	responseHeaders := headerToString(resp.Header)
@@ -642,6 +638,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     if regexp.MustCompile(`X-Amz-`).MatchString(decodedHeaderResponse) {
         poweredBy += "|amazon"
     }
+
+	if regexp.MustCompile(`please visit <a href="https://portal.azure.com/"`).MatchString(decodedHeaderResponse) {
+        poweredBy += "|Azure"
+    }
+
     if regexp.MustCompile(`X-Planisys-`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Planisys"
     }
@@ -982,6 +983,10 @@ func getRedirect(decodedResponse string) string {
 			}
 			// Remove double quotes from the redirect URL
 			redirectURL = regexp.MustCompile(`"`).ReplaceAllString(redirectURL, "")
+
+			if redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" {
+				redirectURL = ""
+			}
 			return redirectURL
 		}
 	}
