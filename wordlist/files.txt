@@ -64,8 +64,6 @@ _admin
 ~admin
 ~administrator
 affiliates.sql
-_ajax
-~amanda
 ~apache
 apis.json
 _archive
@@ -75,7 +73,6 @@ archive.sql
 archive.tar
 archive.tar.gz
 archive.zip
-ask.bak
 _assets
 awstats.conf
 back.sql
@@ -134,7 +131,6 @@ config.server
 contact.action
 contactmazda.action
 crossdomain
-_css
 customers.sql
 customers.sql.gz
 customers.sqlite
@@ -199,10 +195,6 @@ htaccess.bak
 ~http
 ~httpd
 id_rsa.pub
-_images
-images.bak
-_img
-_inc
 _include
 _includes
 inculdes.bak
@@ -241,8 +233,6 @@ member.bak
 members.sql
 members.sql.gz
 members.sqlite
-_mem_bin
-_mm
 _mmserverscripts
 moving.page
 _mygallery
@@ -315,23 +305,7 @@ _swf
 ~sys
 ~sysadm
 ~sysadmin
-_temp
-_tempalbums
-_template
-_templates
-_test
-~test
-test.aspx
-_themes
-thumbs.db
-Thumbs.db
-_tmp
-~tmp
-_tmpfileop
-update.action
-upgrade.readme
 uploads/dump.sql
-~user
 users.sql
 users.sql.gz
 users.sqlite
@@ -372,4 +346,3 @@ www.tar
 www.tar.gz
 www.tgz
 www.zip
-xcart.bak
