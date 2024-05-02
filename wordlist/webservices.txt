@@ -127,6 +127,7 @@ WSPasajes.asmx
 ws-qr-cjn/qr/simple
 wss/
 WSSGA/
+WebServiceVentas.asmx?WSDL
 wss_subcategorias.asmx
 ws/WSPasajes.asmx
 zooservice/

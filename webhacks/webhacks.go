@@ -209,6 +209,8 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 		
 	} //end for
+
+
 	responseHeaders := headerToString(resp.Header)
 	decodedHeaderResponse := responseHeaders + "\n" + decodedResponse
 	decodedResponse = strings.ReplaceAll(decodedResponse, "'", "\"")
@@ -518,6 +520,13 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
+	re = regexp.MustCompile(`<img src="(.*?)" class="logo">`)
+    match := re.FindStringSubmatch(decodedHeaderResponse)
+    if len(match) > 1 {
+        logo := match[1]
+		poweredBy += "|" + logo
+    }
+
 	re = regexp.MustCompile(`(?i)jquery.js\?ver=(.*?)"`)
 	jqueryMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(jqueryMatch) > 1 {
@@ -593,6 +602,8 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			poweredBy += "| H4=" + h4
 		}
 	}
+
+
 
 	if strings.Contains(decodedHeaderResponse, "GASOLINERA") {
         poweredBy += "|GASOLINERA"
