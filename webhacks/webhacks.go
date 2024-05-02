@@ -414,8 +414,15 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		poweredBy += pwdby
 	}
 
-	if strings.Contains(decodedHeaderResponse, "laravel_session") {
-		poweredBy += "|Laravel"
+	if strings.Contains(decodedHeaderResponse, "laravel_session") || strings.Contains(decodedHeaderResponse, "Laravel Client") {
+		re := regexp.MustCompile(`framework_version":"([\d.]+)`)
+		matches := re.FindStringSubmatch(decodedHeaderResponse)
+		if len(matches) >= 2 {
+			version := matches[1]
+			poweredBy += "|Laravel "+version
+		} else {
+			poweredBy += "|Laravel"
+		}
 	}
 
 	re = regexp.MustCompile(`(?i)name="geo.placename" content="(.*?)"`)
@@ -686,6 +693,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     if regexp.MustCompile(`X-Powered-By-Plesk`).MatchString(decodedHeaderResponse) {
         poweredBy += "|PleskWin"
     }
+
+	if regexp.MustCompile(`Observium`).MatchString(decodedHeaderResponse) {
+        poweredBy += "|networkMonitoring"
+    }
+	
     if regexp.MustCompile(`Web Services`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Web Service"
         if title == "" {
@@ -833,6 +845,10 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						vuln = checkVuln(bodyContent)
 					}
 
+					if strings.Contains(bodyContent, "Your access is denied") {
+						current_status = 404
+					}
+					
 					if vuln != "" {
 						fmt.Printf("%d \t %s (%s)\n", current_status, urlLine, vuln)
 					} else {

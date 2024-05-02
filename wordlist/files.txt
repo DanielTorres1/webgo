@@ -147,7 +147,6 @@ db1.sqlite
 _db_backups
 db.sql
 db.sqlite
-default.htm
 _derived
 _dev
 df_main.sql
