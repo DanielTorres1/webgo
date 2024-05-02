@@ -14,7 +14,6 @@ Login
 loginadmin
 logins
 Logins
-logo
 logon
 logos
 account.js
