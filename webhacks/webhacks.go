@@ -222,7 +222,10 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	decodedResponse = regexp.MustCompile("postmaster@example.com").ReplaceAllString(decodedResponse, "")
 
 	// ######## vulnerability ######
-	vulnerability = vulnerability + checkVuln(decodedResponse)
+	if decodedResponse != "" {
+		vulnerability = vulnerability + checkVuln(decodedResponse)
+	}
+	
 	
 	if debug {
 		fmt.Printf("vulnerability %s\n", vulnerability)
