@@ -1086,7 +1086,7 @@ func checkVuln(decodedContent string) string {
 		vuln = "ListadoDirectorios"
 	}
 
-	if regexp.MustCompile(`(?i)HTTP_X_FORWARDED_HOST|HTTP_X_FORWARDED_SERVER|phpinfo\(\)`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)HTTP_X_FORWARDED_HOST|HTTP_X_FORWARDED_SERVER\(\)`).MatchString(decodedContent) {
 		vuln = "divulgacionInformacion"
 	}
 

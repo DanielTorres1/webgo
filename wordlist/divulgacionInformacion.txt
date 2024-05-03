@@ -79,7 +79,6 @@ cron_sku.log
 crossdomain.xml
 custom/db.ini
 customers.log
-dashboard/phpinfo.php
 database.log
 databases.yml
 database.yml
@@ -190,14 +189,6 @@ phperrors.log
 php-findsock-shell.php
 /php-fpm/error.log
 /php-fpm/www-error.log
-phpinfo
-php-info.php
-phpinfo.php
-phpinfo.php3
-phpinfo.php4
-phpinfo.php5
-phpinfos
-phpinfos.php
 php.ini
 php.ini_
 php.ini~
@@ -285,7 +276,6 @@ WS_FTP.ini
 ws_ftp.log
 WS_FTP.log
 www-error.log
-xampp/phpinfo.php
 xml/_common.xml
 xml/common.xml
 xphperrors.log
