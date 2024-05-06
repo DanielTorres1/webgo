@@ -847,7 +847,11 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 
 				//check if return a custom 404 error but 200 OK
 				if error404 != "" {
-					if strings.Contains(bodyContent, error404) {
+					 // Convert both strings to lowercase for case-insensitive comparison
+					lowerBodyContent := strings.ToLower(bodyContent)
+					lowerError404 := strings.ToLower(error404)
+					
+					if strings.Contains(lowerBodyContent, lowerError404) {
 						current_status = 404
 					} 
 				}
