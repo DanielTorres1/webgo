@@ -611,6 +611,16 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	if strings.Contains(decodedHeaderResponse, "GASOLINERA") {
         poweredBy += "|GASOLINERA"
     }
+
+	if strings.Contains(decodedHeaderResponse, "/assets/erpnext") {
+        poweredBy += "|erpnext"
+    }
+
+	if strings.Contains(decodedHeaderResponse, "Payara Server Open Source") {
+        poweredBy += "|Payara"
+    }
+	
+
     if strings.Contains(decodedHeaderResponse, "<FORM") {
         poweredBy += "|formulario-login"
     }
