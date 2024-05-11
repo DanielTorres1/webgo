@@ -1123,9 +1123,9 @@ func checkVuln(decodedContent string) string {
 		vuln = "RegistroHabilitado"
 	}
 
-	if decodedContent == "" {
-		vuln = "ArchivoVacio"
-	}
+	// if decodedContent == "" {
+	// 	vuln = "ArchivoVacio"
+	// }
 
 	return vuln
 }
