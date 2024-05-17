@@ -1099,7 +1099,7 @@ func checkVuln(decodedContent string) string {
 		vuln = "ExposicionUsuarios"
 	}
 
-	if regexp.MustCompile(`(?i)Directory of|Index of|Parent directory`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)(?<!%)index of|(?<!sub)directory of|Index of|Parent directory`).MatchString(decodedContent) {
 		vuln = "ListadoDirectorios"
 	}
 
