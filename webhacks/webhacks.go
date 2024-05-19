@@ -1099,15 +1099,9 @@ func checkVuln(decodedContent string) string {
 		vuln = "ExposicionUsuarios"
 	}
 
-	if strings.Contains(decodedContent, "index of") &&
-    !strings.Contains(decodedContent, "%index of") &&
-    !strings.Contains(decodedContent, "subdirectory of") ||
-    strings.Contains(decodedContent, "directory of") &&
-    !strings.Contains(decodedContent, "%directory of") &&
-    !strings.Contains(decodedContent, "subdirectory of") ||
-    strings.Contains(decodedContent, "parent directory") {
-    vuln = "ListadoDirectorios"
-}
+	if regexp.MustCompile(`(?i)(?:^|[^a-z])(?:index of|directory of|Index of|Parent directory)(?:[^a-z]|$)`).MatchString(decodedContent) {
+		vuln = "ListadoDirectorios"
+	}
 
 	if regexp.MustCompile(`(?i)HTTP_X_FORWARDED_HOST|HTTP_X_FORWARDED_SERVER\(\)`).MatchString(decodedContent) {
 		vuln = "divulgacionInformacion"
