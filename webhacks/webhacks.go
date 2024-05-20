@@ -735,8 +735,13 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         }
     }
 
+	
+	if regexp.MustCompile(`(?i)Waiting...`).MatchString(decodedHeaderResponse) {
+		server = "Huawei"
+	}
 
 	if regexp.MustCompile(`(?i)Huawei Technologies Co`).MatchString(decodedHeaderResponse) {
+		
 		title, server = "optical network terminal (ONT)", "Huawei"
 		productNameRegex := regexp.MustCompile(`(?i)var ProductName = "(.*?)"`)
 		if matches := productNameRegex.FindStringSubmatch(decodedHeaderResponse); len(matches) > 1 {
