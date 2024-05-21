@@ -865,7 +865,8 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					 // Convert both strings to lowercase for case-insensitive comparison
 					lowerBodyContent := strings.ToLower(bodyContent)
 					lowerError404 := strings.ToLower(error404)
-					
+					error404 = strings.ReplaceAll(error404, "~", " ")
+					 
 					if strings.Contains(lowerBodyContent, lowerError404) {
 						current_status = 404
 					} 
