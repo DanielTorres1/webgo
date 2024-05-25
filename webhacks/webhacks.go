@@ -1082,7 +1082,7 @@ func checkVuln(decodedContent string) string {
 		vuln = "contenidoPrueba"
 	}
 
-	if regexp.MustCompile(`(?i)DEBUG = True|app/controllers|SERVER_ADDR|REMOTE_ADDR|DOCUMENT_ROOT/|TimeoutException|vendor/laravel/framework/src/Illuminate`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)DEBUG = True|app/controllers|SERVER_ADDR|REMOTE_ADDR|DOCUMENT_ROOT/|TimeoutException|vendor/laravel/framework/src/Illuminate|phpdebugbar`).MatchString(decodedContent) {
 		vuln = "debugHabilitado"
 	}
 
@@ -1099,16 +1099,20 @@ func checkVuln(decodedContent string) string {
 	}
 
 	if regexp.MustCompile(`(?i)undefined function|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Stack trace|Exception information`).MatchString(decodedContent) {
-		vuln = "MensajeError"
+		if !regexp.MustCompile(`(?i)Bad Request error`).MatchString(decodedContent) {
+			// If "Bad Request error" is not found, set vuln to "MensajeError"
+			vuln = "MensajeError"
+		}
 	}
 
 	if regexp.MustCompile(`E_WARNING`).MatchString(decodedContent) { //mayuscula
 		vuln = "MensajeError"
 	}
 
-	if regexp.MustCompile(`(?i)Access denied for`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)(Access denied for|r=usuario/create)`).MatchString(decodedContent) {
 		vuln = "ExposicionUsuarios"
 	}
+	
 
 	if regexp.MustCompile(`(?i)(?:^|[^a-z])(?:index of|directory of|Index of|Parent directory)(?:[^a-z]|$)`).MatchString(decodedContent) {
 		vuln = "ListadoDirectorios"
@@ -1118,21 +1122,15 @@ func checkVuln(decodedContent string) string {
 		vuln = "divulgacionInformacion"
 	}
 
-	if regexp.MustCompile(`(?i)Client IP:`).MatchString(decodedContent) {
+	if regexp.MustCompile(`\b(?:1?\d{1,2}|2[0-4]\d|25[0-5])\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])\b`).MatchString(decodedContent) {
 		vuln = "IPinterna"
 	}
-
+	
 	if regexp.MustCompile(`(?i)"password":`).MatchString(decodedContent) {
 		vuln = "PasswordDetected"
 	}
 
-	if regexp.MustCompile(`(?i)r=usuario/create`).MatchString(decodedContent) {
-		vuln = "ExposicionUsuarios"
-	}
-
-	if regexp.MustCompile(`(?m)/user/register|registerform|member-registration`).MatchString(decodedContent) {
-		vuln = "RegistroHabilitado"
-	}
+	
 
 	// if decodedContent == "" {
 	// 	vuln = "ArchivoVacio"
