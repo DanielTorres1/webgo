@@ -27,6 +27,7 @@ CFIDE/adminapi/base.cfc?wsdl
 CFIDE/scripts/ajax/FCKeditor/editor/filemanager/connectors/cfm/upload.cfm
 co/?action=usuario
 config.ini
+config.json
 ................../config.sys
 config.sys
 CVS/
