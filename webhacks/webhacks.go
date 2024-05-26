@@ -94,18 +94,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	proto := wh.Proto
 	path := wh.Path
 
-	// if debug {
-	// 	fmt.Printf("Configuracion:  proto:%s timeout %s debug %s MaxRedirect %s \n\n", proto,timeout, debug, MaxRedirect)
-	// }
-
 	poweredBy := ""
-	// var urlOriginal string
-	// if rport == "80" || rport == "443" {
-	// 	urlOriginal = proto + "://" + rhost + path
-	// } else {
-	// 	urlOriginal = proto + "://" + rhost + ":" + rport + path
-	// }
-
 	redirectURL := "no"
 	urlOriginal := proto + "://" + rhost + ":" + rport + path
 	var finalURLRedirect string
@@ -124,12 +113,18 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 		resp, err = wh.Dispatch(urlOriginal, "GET", wh.Headers)
 		if err != nil {			
-			fmt.Printf("Error %s \n", err)
+			fmt.Printf("Error1 %s \n", err)
+			if strings.Contains(err.Error(), "server gave") {
+				// Handling protocol mismatch by switching protocol
+				urlOriginal = proto + "://" + rhost  + path
+				if debug {
+					fmt.Printf("Error: %v. Switching protocol to: %s", err, proto)
+				}
+				continue
+			}
 		}
 		lastURL = resp.Request.URL.String()
 		status = resp.Status
-
-		
 
 		if urlOriginal != lastURL {
 			poweredBy += "|301 Moved"
@@ -1003,11 +998,16 @@ func (wh *WebHacks) Backupbuster(urlFile string) {
 func getRedirect(decodedResponse string) string {
 	// Define patterns to search for redirect URLs
 	patterns := []string{
-		`meta http-equiv="Refresh" content="0;URL=(.*?)"`,
-		`meta http-equiv="Refresh" content="1;URL="(.*?)"`,
+		// `meta http-equiv="Refresh" content="0; URL=(.*?)"`,
+		// `meta http-equiv="Refresh" content="0;URL=(.*?)"`,
+		// `meta http-equiv="Refresh" content="1;URL="(.*?)"`,
+		// `meta http-equiv="Refresh" content="1; URL="(.*?)"`,
+		// `meta http-equiv="Refresh" content="1;URL=(.*?)"`,
+		`meta http-equiv=["']Refresh["'] content=["']0; ?URL= ?(.*?)["']`,
+		`meta http-equiv=["']refresh["'] content=["']0; ?URL= ?(.*?)["']`,
+		`meta http-equiv=["']Refresh["'] content=["']1; ?URL= ?(.*?)["']`,
+		`meta http-equiv=["']refresh["'] content=["']1; ?URL= ?(.*?)["']`,
 		`window.onload=function\(\) urlLine ="(.*?)"`,
-		`meta http-equiv="Refresh" content="1;URL=(.*?)"`,
-		`meta http-equiv="Refresh" content="0;URL=(.*?)"`,
 		`window.location="(.*?)"`,
 		`location.href="(.*?)"`,
 		`window.location.href = "(.*?)"`,
@@ -1039,7 +1039,7 @@ func getRedirect(decodedResponse string) string {
 			// Remove double quotes from the redirect URL
 			redirectURL = regexp.MustCompile(`"`).ReplaceAllString(redirectURL, "")
 
-			if redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" {
+			if redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") {
 				redirectURL = ""
 			}
 			return redirectURL
