@@ -99,8 +99,8 @@ func main() {
 	switch mode {
 	case "registroHabilitado":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/registroHabilitado.txt", "")
-	case "graphQL":
-		webHacks.Dirbuster("/usr/share/webhacks/wordlist/graphQL.txt", "")
+	case "api":
+		webHacks.Dirbuster("/usr/share/webhacks/wordlist/api.txt", "")
 	case "files":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/files.txt", "")
 	case "admin":
@@ -127,8 +127,6 @@ func main() {
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/iis.txt", "")
 	case "sharepoint":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/sharepoint.txt", "")
-	case "api":
-        webHacks.Dirbuster("/usr/share/webhacks/wordlist/api.txt", "")
 	case "tomcat":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/tomcat.txt", "")
 	case "custom":

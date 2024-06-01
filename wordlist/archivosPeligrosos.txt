@@ -8,16 +8,9 @@ pswa/en-US/logon.aspx
 pswa
 reset
 vendor
-api
 telescope
+q/openapi
 horizon
-api/apidocs
-api/datosLog 
-apidocs
-api/settings/
-api/swagger-ui.html
-api/v1
-api/v2
 app/database/
 application.wadl
 backup/
@@ -106,5 +99,4 @@ wp-admin/setup-config.php
 wp-content/plugins/contact-form-7/includes/searchreplacedb2.php
 wp-content/plugins/contact-form-7/searchreplacedb2.php
 wp-content/themes/bridge/js/searchreplacedb2.php
-wsdl/
 wp-config.php.bk

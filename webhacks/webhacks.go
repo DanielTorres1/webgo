@@ -857,20 +857,28 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 
 				//check if return a custom 404 error but 200 OK
 				if error404 != "" {
-					//fmt.Printf(" Checkking error404")
-					 // Convert both strings to lowercase for case-insensitive comparison
+					// Split error404 into an array of possible error messages
+					errorMessages := strings.Split(error404, "|")
+				
+					// Convert the bodyContent to lowercase for case-insensitive comparison
 					lowerBodyContent := strings.ToLower(bodyContent)
-					lowerError404 := strings.ToLower(error404)
-					//error404 = strings.ReplaceAll(error404, "~", " ")
-
-					if strings.Contains(lowerBodyContent, lowerError404) {
-						//fmt.Printf(" Entro")
-						current_status = 404
+				
+					// Iterate over each possible error message
+					for _, errorMessage := range errorMessages {
+						lowerErrorMessage := strings.ToLower(errorMessage)
+						if strings.Contains(lowerBodyContent, lowerErrorMessage) {
+							// If any error message is found in the bodyContent, set the status to 404
+							current_status = 404
+							break
+						}
 					}
 				}
 
 				//fmt.Printf(" %s\n", bodyContent)
 				//time.Sleep(5 * time.Second)
+				if bodyContent == "" {
+					current_status = 404
+				}
 
 				
 				if (show404 && current_status == 404) || current_status != 404 {
@@ -1039,7 +1047,7 @@ func getRedirect(decodedResponse string) string {
 			// Remove double quotes from the redirect URL
 			redirectURL = regexp.MustCompile(`"`).ReplaceAllString(redirectURL, "")
 
-			if redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") {
+			if redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") {
 				redirectURL = ""
 			}
 			return redirectURL
@@ -1078,6 +1086,11 @@ func (wh *WebHacks) Dispatch(urlLine string, method string, headers http.Header)
 func checkVuln(decodedContent string) string {
 	vuln := ""
 
+	if regexp.MustCompile(`\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.16\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b`).MatchString(decodedContent) {
+		vuln = "IPinterna"
+	}
+	
+
 	if regexp.MustCompile(`(?m)Lorem ipsum`).MatchString(decodedContent) {
 		vuln = "contenidoPrueba"
 	}
@@ -1098,11 +1111,14 @@ func checkVuln(decodedContent string) string {
 		vuln = "OpenMikrotik"
 	}
 
-	if regexp.MustCompile(`(?i)undefined function|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Stack trace|Exception information`).MatchString(decodedContent) {
-		if !regexp.MustCompile(`(?i)Bad Request error`).MatchString(decodedContent) {
-			// If "Bad Request error" is not found, set vuln to "MensajeError"
-			vuln = "MensajeError"
-		}
+
+	re := regexp.MustCompile(`(?i)(undefined function|already sent by|Undefined offset|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Exception in thread|Exception information)`)
+	match := re.FindStringSubmatch(decodedContent)
+
+	// Si hay una coincidencia, imprimir el término que coincide
+	if len(match) > 0 {
+		fmt.Println("Término que coincide:", match[1])
+		vuln = "MensajeError"
 	}
 
 	if regexp.MustCompile(`E_WARNING`).MatchString(decodedContent) { //mayuscula
@@ -1122,19 +1138,13 @@ func checkVuln(decodedContent string) string {
 		vuln = "divulgacionInformacion"
 	}
 
-	if regexp.MustCompile(`\b(?:1?\d{1,2}|2[0-4]\d|25[0-5])\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])\b`).MatchString(decodedContent) {
-		vuln = "IPinterna"
-	}
-	
+
 	if regexp.MustCompile(`(?i)"password":`).MatchString(decodedContent) {
 		vuln = "PasswordDetected"
 	}
 
-	
 
-	// if decodedContent == "" {
-	// 	vuln = "ArchivoVacio"
-	// }
+	
 
 	return vuln
 }
