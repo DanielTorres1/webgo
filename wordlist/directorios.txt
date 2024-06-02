@@ -3603,7 +3603,6 @@ picturecomment
 picture_library
 pictures
 pii
-ping
 pingback
 pipe
 pipermail
