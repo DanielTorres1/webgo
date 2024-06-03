@@ -49,8 +49,10 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
     // Select a User-Agent randomly.
     selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
 
+	//proxyURL, _ := url.Parse("http://127.0.0.1:8080") burpsuite
     // Create a custom HTTP transport that ignores SSL certificate errors
     httpTransport := &http.Transport{
+		//Proxy: http.ProxyURL(proxyURL), burpsuite
         TLSClientConfig: &tls.Config{
             InsecureSkipVerify: true,
             MinVersion:         tls.VersionTLS10,
@@ -76,10 +78,15 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
     }
 
     // Configure headers
-    wh.Headers.Set("User-Agent", selectedUserAgent)
-    wh.Headers.Set("Cache-Control", "max-age=0")
-    wh.Headers.Set("Accept", "*/*")
-    wh.Headers.Set("DNT", "1")
+	wh.Headers.Set("User-Agent", selectedUserAgent)
+	wh.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+	wh.Headers.Set("Accept-Language", "en-US,en;q=0.5")
+	wh.Headers.Set("Accept-Encoding", "gzip, deflate")
+	wh.Headers.Set("Upgrade-Insecure-Requests", "1")
+	wh.Headers.Set("Sec-Fetch-Dest", "document")
+	wh.Headers.Set("Sec-Fetch-Mode", "navigate")
+	wh.Headers.Set("Sec-Fetch-Site", "none")
+
     if wh.Ajax {
         wh.Headers.Set("X-Requested-With", "XmlHttpRequest")
     }
@@ -854,7 +861,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				current_status := resp.StatusCode
 				bodyBytes, _ := ioutil.ReadAll(resp.Body)
 				bodyContent := string(bodyBytes)
-
+				//fmt.Printf("%s \n", bodyContent)
 				//check if return a custom 404 error but 200 OK
 				if error404 != "" {
 					// Split error404 into an array of possible error messages
@@ -866,6 +873,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					// Iterate over each possible error message
 					for _, errorMessage := range errorMessages {
 						lowerErrorMessage := strings.ToLower(errorMessage)
+						//fmt.Printf("%s \n", lowerBodyContent)
 						if strings.Contains(lowerBodyContent, lowerErrorMessage) {
 							// If any error message is found in the bodyContent, set the status to 404
 							current_status = 404
