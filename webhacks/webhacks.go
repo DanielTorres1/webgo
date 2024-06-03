@@ -49,10 +49,10 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
     // Select a User-Agent randomly.
     selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
 
-	//proxyURL, _ := url.Parse("http://127.0.0.1:8080") burpsuite
+	//proxyURL, _ := url.Parse("http://127.0.0.1:8080") // burpsuite
     // Create a custom HTTP transport that ignores SSL certificate errors
     httpTransport := &http.Transport{
-		//Proxy: http.ProxyURL(proxyURL), burpsuite
+		//Proxy: http.ProxyURL(proxyURL), //burpsuite
         TLSClientConfig: &tls.Config{
             InsecureSkipVerify: true,
             MinVersion:         tls.VersionTLS10,
@@ -81,7 +81,6 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 	wh.Headers.Set("User-Agent", selectedUserAgent)
 	wh.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	wh.Headers.Set("Accept-Language", "en-US,en;q=0.5")
-	wh.Headers.Set("Accept-Encoding", "gzip, deflate")
 	wh.Headers.Set("Upgrade-Insecure-Requests", "1")
 	wh.Headers.Set("Sec-Fetch-Dest", "document")
 	wh.Headers.Set("Sec-Fetch-Mode", "navigate")
@@ -1055,7 +1054,7 @@ func getRedirect(decodedResponse string) string {
 			// Remove double quotes from the redirect URL
 			redirectURL = regexp.MustCompile(`"`).ReplaceAllString(redirectURL, "")
 
-			if redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") {
+			if redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") || strings.Contains(redirectURL, "microsoftonline")  {
 				redirectURL = ""
 			}
 			return redirectURL
