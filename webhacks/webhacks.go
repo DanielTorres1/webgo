@@ -102,11 +102,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	poweredBy := ""
 	redirectURL := "no"
 	var urlOriginal string
-	if rport == "443" || rport == "80" {
-		urlOriginal = proto + "://" + rhost + path
-	} else {
-		urlOriginal = proto + "://" + rhost + ":" + rport + path
-	}
+	// if rport == "443" || rport == "80" {
+	// 	urlOriginal = proto + "://" + rhost + path
+	// } else {
+	urlOriginal = proto + "://" + rhost + ":" + rport + path
+	//}
 	var finalURLRedirect string
 	var decodedResponse string
 	var resp *http.Response 
