@@ -48,10 +48,10 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
     // Select a User-Agent randomly.
     selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
 
-	//proxyURL, _ := url.Parse("http://127.0.0.1:8080") // burpsuite
+	proxyURL, _ := url.Parse("http://127.0.0.1:8080") // burpsuite
     // Create a custom HTTP transport that ignores SSL certificate errors
     httpTransport := &http.Transport{
-		//Proxy: http.ProxyURL(proxyURL), //burpsuite
+		Proxy: http.ProxyURL(proxyURL), //burpsuite
         TLSClientConfig: &tls.Config{
             InsecureSkipVerify: true,
             MinVersion:         tls.VersionTLS10,
@@ -895,7 +895,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 
 				//fmt.Printf(" %s\n", bodyContent)
 				//time.Sleep(5 * time.Second)
-				if bodyContent == "" {
+				if current_status == 200 && bodyContent == "" {
 					current_status = 404
 				}
 

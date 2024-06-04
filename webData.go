@@ -21,7 +21,7 @@ func main() {
 	flag.StringVar(&logFile, "logFile", "", "log file")
 	flag.StringVar(&proto, "proto", "http", "Protocol (http/https)")
 	flag.BoolVar(&debug, "debug", false, "debug (true=true, false=false)")
-	flag.IntVar(&timeout, "timeout", 5, "Timeout")
+	flag.IntVar(&timeout, "timeout", 15, "Timeout")
 	flag.Parse()
 
 	if target == "" {
