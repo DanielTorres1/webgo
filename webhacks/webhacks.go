@@ -865,7 +865,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				resp, err := wh.Dispatch(urlLine, "GET", headers)
 				if err != nil {
 					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
-					return // Or 'continue' if inside a loop.
+					continue
 				}
 				defer resp.Body.Close()
 
