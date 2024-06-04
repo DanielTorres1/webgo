@@ -42,9 +42,6 @@ admin1.asp
 admin1.html
 admin1.php
 admin2/
-admin2015/
-admin2016/
-admin2017/
 admin2018/
 admin2019/
 admin2020/
@@ -52,6 +49,7 @@ admin2021/
 admin2022/
 admin2023/
 admin2024/
+admin2025/
 admin2.asp
 admin2.cfm
 admin2.html

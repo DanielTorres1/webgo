@@ -43,16 +43,15 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
     userAgents := []string{
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
-        // ... other user agents
     }
 
     // Select a User-Agent randomly.
     selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
 
-	//proxyURL, _ := url.Parse("http://127.0.0.1:8080") // burpsuite
+	proxyURL, _ := url.Parse("http://127.0.0.1:8080") // burpsuite
     // Create a custom HTTP transport that ignores SSL certificate errors
     httpTransport := &http.Transport{
-		//Proxy: http.ProxyURL(proxyURL), //burpsuite
+		Proxy: http.ProxyURL(proxyURL), //burpsuite
         TLSClientConfig: &tls.Config{
             InsecureSkipVerify: true,
             MinVersion:         tls.VersionTLS10,
@@ -102,7 +101,12 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 	poweredBy := ""
 	redirectURL := "no"
-	urlOriginal := proto + "://" + rhost + ":" + rport + path
+	var urlOriginal string
+	if rport == "443" || rport == "80" {
+		urlOriginal = proto + "://" + rhost + path
+	} else {
+		urlOriginal = proto + "://" + rhost + ":" + rport + path
+	}
 	var finalURLRedirect string
 	var decodedResponse string
 	var resp *http.Response 
@@ -656,8 +660,16 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|laravel"
     }
     if regexp.MustCompile(`wp-content|wp-admin|wp-caption`).MatchString(decodedHeaderResponse) {
-        poweredBy += "|wordpress"
-    }
+		re := regexp.MustCompile(`content="WordPress ([\d.]+)"`)
+		match := re.FindStringSubmatch(decodedHeaderResponse)
+		if len(match) > 1 {
+			version := match[1]
+			poweredBy += "|wordpress v" + version
+		} else {
+			poweredBy += "|wordpress"
+		}
+	}
+
     if regexp.MustCompile(`Powered by Abrenet`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Powered by Abrenet"
     }
@@ -737,7 +749,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     }
 
 	
-	if regexp.MustCompile(`(?i)Waiting...`).MatchString(decodedHeaderResponse) {
+	if regexp.MustCompile(`(?i)waiting\.\.\.`).MatchString(decodedHeaderResponse) {
 		server = "Huawei"
 	}
 
