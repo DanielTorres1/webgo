@@ -2,6 +2,7 @@ package webhacks
 
 import (
 	"crypto/tls"
+	"compress/gzip"
     "bufio"
 	"math/rand"
 	"unicode"
@@ -12,6 +13,7 @@ import (
     "sync"
 	"regexp"
 	"time"
+	"io"
 	"io/ioutil"
     "strings"
 )
@@ -161,7 +163,27 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			newDomain = domainFinal
 		}
 
-		body, _ := ioutil.ReadAll(resp.Body)
+		var bodyReader io.ReadCloser
+		switch resp.Header.Get("Content-Encoding") {
+		case "gzip":
+			bodyReader, err = gzip.NewReader(resp.Body)
+			if err != nil {
+				fmt.Println("Error al descomprimir la respuesta gzip")
+				os.Exit(1)
+			}
+			defer bodyReader.Close()
+		case "x-gzip":
+			bodyReader, err = gzip.NewReader(resp.Body)
+			if err != nil {
+				fmt.Println("Error al descomprimir la respuesta x-gzip")
+				os.Exit(1)
+			}
+			defer bodyReader.Close()
+		default:
+			bodyReader = resp.Body
+		}
+
+		body, _ := ioutil.ReadAll(bodyReader)
 		resp.Body.Close()
 		decodedResponse = string(body)
 		decodedResponse = strings.ReplaceAll(decodedResponse, "'", "\"")
@@ -617,6 +639,19 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|GASOLINERA"
     }
 
+	if regexp.MustCompile(`Microsoftsharepointteamservices`).MatchString(decodedHeaderResponse) {
+		server = "Microsoft SharePoint"
+		re := regexp.MustCompile(`Microsoftsharepointteamservices: ([\d.]+)\r?\n`)
+		matches := re.FindStringSubmatch(decodedHeaderResponse)
+
+		if len(matches) > 1 {
+			version := matches[1]
+			poweredBy += "|SharePoint v" + version
+		} else {
+			poweredBy += "|SharePoint"
+		}
+	}
+
 	if strings.Contains(decodedHeaderResponse, "/assets/erpnext") {
         poweredBy += "|erpnext"
     }
@@ -646,7 +681,8 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		poweredBy += "|api-endpoint"
 	}
 	
-    if regexp.MustCompile(`FortiGate`).MatchString(decodedHeaderResponse) {
+	fmt.Printf("decodedHeaderResponse: %s\n", decodedHeaderResponse)
+    if regexp.MustCompile(`FortiGate|FortiGate for inclusion in the httpsd debug log`).MatchString(decodedHeaderResponse) {
         poweredBy += "|FortiGate"
         server = "FortiGate"
     }
@@ -720,10 +756,18 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     if regexp.MustCompile(`MoodleSession|content="moodle"`).MatchString(decodedHeaderResponse) {
         poweredBy += "|moodle"
     }
-    if regexp.MustCompile(`fortinet-grid `).MatchString(decodedHeaderResponse) {
+    if regexp.MustCompile(`fortinet-grid`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Fortinet"
         server = "Fortinet"
     }
+
+	if regexp.MustCompile(`Sophos UTM Manager`).MatchString(decodedHeaderResponse) {
+        poweredBy += "|Sophos UTM"
+        server = "Sophos"
+    }
+
+	
+
     if regexp.MustCompile(`theme-taiga.css`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Taiga"
     }
@@ -1157,7 +1201,7 @@ func checkVuln(decodedContent string) string {
 	}
 
 
-	if regexp.MustCompile(`(?i)"password":`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)"password":|\&password=`).MatchString(decodedContent) {
 		vuln = "PasswordDetected"
 	}
 
