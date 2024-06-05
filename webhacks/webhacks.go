@@ -720,7 +720,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     if regexp.MustCompile(`MoodleSession|content="moodle"`).MatchString(decodedHeaderResponse) {
         poweredBy += "|moodle"
     }
-    if regexp.MustCompile(`ftnt-fortinet-grid icon-xl`).MatchString(decodedHeaderResponse) {
+    if regexp.MustCompile(`fortinet-grid `).MatchString(decodedHeaderResponse) {
         poweredBy += "|Fortinet"
         server = "Fortinet"
     }
@@ -868,7 +868,6 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					continue
 				}
 				defer resp.Body.Close()
-
 				current_status := resp.StatusCode
 				bodyBytes, _ := ioutil.ReadAll(resp.Body)
 				bodyContent := string(bodyBytes)
@@ -911,9 +910,9 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					}
 					
 					if vuln != "" {
-						fmt.Printf("%d \t %s (%s)\n", current_status, urlLine, vuln)
+						fmt.Printf("%d | %s (%s) | %d\n", current_status, urlLine, vuln, len(bodyContent))
 					} else {
-						fmt.Printf("%d \t %s\n", current_status, urlLine)
+						fmt.Printf("%d | %s | %d\n", current_status, urlLine, len(bodyContent))
 					}
 
 				}
