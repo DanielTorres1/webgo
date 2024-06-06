@@ -954,7 +954,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					}
 					
 					if vuln != "" {
-						fmt.Printf("%d | %s (%s) | %d\n", current_status, urlLine, vuln, len(bodyContent))
+						fmt.Printf("%d | %s (vulnerabilidad=%s) | %d\n", current_status, urlLine, vuln, len(bodyContent))
 					} else {
 						fmt.Printf("%d | %s | %d\n", current_status, urlLine, len(bodyContent))
 					}
@@ -1204,9 +1204,6 @@ func checkVuln(decodedContent string) string {
 	if regexp.MustCompile(`(?i)"password":|\&password=`).MatchString(decodedContent) {
 		vuln = "PasswordDetected"
 	}
-
-
-	
 
 	return vuln
 }
