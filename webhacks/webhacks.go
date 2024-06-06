@@ -681,7 +681,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		poweredBy += "|api-endpoint"
 	}
 	
-	fmt.Printf("decodedHeaderResponse: %s\n", decodedHeaderResponse)
+	//fmt.Printf("decodedHeaderResponse: %s\n", decodedHeaderResponse)
     if regexp.MustCompile(`FortiGate|FortiGate for inclusion in the httpsd debug log`).MatchString(decodedHeaderResponse) {
         poweredBy += "|FortiGate"
         server = "FortiGate"
