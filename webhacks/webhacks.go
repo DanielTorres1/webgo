@@ -912,8 +912,29 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					continue
 				}
 				defer resp.Body.Close()
+
+				var bodyReader io.ReadCloser
+				switch resp.Header.Get("Content-Encoding") {
+				case "gzip":
+					bodyReader, err = gzip.NewReader(resp.Body)
+					if err != nil {
+						fmt.Println("Error al descomprimir la respuesta gzip")
+						os.Exit(1)
+					}
+					defer bodyReader.Close()
+				case "x-gzip":
+					bodyReader, err = gzip.NewReader(resp.Body)
+					if err != nil {
+						fmt.Println("Error al descomprimir la respuesta x-gzip")
+						os.Exit(1)
+					}
+					defer bodyReader.Close()
+				default:
+					bodyReader = resp.Body
+				}
+
+				bodyBytes, _ := ioutil.ReadAll(bodyReader)
 				current_status := resp.StatusCode
-				bodyBytes, _ := ioutil.ReadAll(resp.Body)
 				bodyContent := string(bodyBytes)
 				//fmt.Printf("%s \n", bodyContent)
 				//check if return a custom 404 error but 200 OK
@@ -942,7 +963,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					current_status = 404
 				}
 
-				if strings.Contains(bodyContent, "Request Rejected") || strings.Contains(bodyContent, "ENTEL S.A.")  {
+				if strings.Contains(bodyContent, "Request Rejected") || strings.Contains(bodyContent, "ENTEL S.A."  )  {
 					current_status = 404
 				}
 				
@@ -998,6 +1019,7 @@ func (wh *WebHacks) Backupbuster(urlFile string) {
 	headers := wh.Headers
 	debug := wh.Debug
 	show404 := wh.Show404
+	error404 := wh.Error404
 	rhost := wh.Rhost
 	rport := wh.Rport
 	path := wh.Path
@@ -1041,10 +1063,50 @@ func (wh *WebHacks) Backupbuster(urlFile string) {
 						continue
 					}
 				}
-				
-				status := resp.StatusCode
-				resp.Body.Close()
 
+				var bodyReader io.ReadCloser
+				switch resp.Header.Get("Content-Encoding") {
+				case "gzip":
+					bodyReader, err = gzip.NewReader(resp.Body)
+					if err != nil {
+						fmt.Println("Error al descomprimir la respuesta gzip")
+						os.Exit(1)
+					}
+					defer bodyReader.Close()
+				case "x-gzip":
+					bodyReader, err = gzip.NewReader(resp.Body)
+					if err != nil {
+						fmt.Println("Error al descomprimir la respuesta x-gzip")
+						os.Exit(1)
+					}
+					defer bodyReader.Close()
+				default:
+					bodyReader = resp.Body
+				}
+
+				bodyBytes, _ := ioutil.ReadAll(bodyReader)
+				status := resp.StatusCode
+				bodyContent := string(bodyBytes)
+
+				if error404 != "" {
+					// Split error404 into an array of possible error messages
+					errorMessages := strings.Split(error404, "|")
+				
+					// Convert the bodyContent to lowercase for case-insensitive comparison
+					lowerBodyContent := strings.ToLower(bodyContent)
+				
+					// Iterate over each possible error message
+					for _, errorMessage := range errorMessages {
+						lowerErrorMessage := strings.ToLower(errorMessage)
+						//fmt.Printf("%s \n", lowerBodyContent)
+						if strings.Contains(lowerBodyContent, lowerErrorMessage) {
+							// If any error message is found in the bodyContent, set the status to 404
+							status = 404
+							break
+						}
+					}
+				}
+				
 				if show404 || status != 404 {
 					fmt.Printf("%d\t%s\n", status, finalURL)
 				}
