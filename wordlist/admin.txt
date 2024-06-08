@@ -69,6 +69,7 @@ admin/admin.asp
 admin/admin.html
 admin/admin.js
 admin/admin-login.asp
+ingreso/
 admin/admin_login.asp
 admin/adminLogin.asp
 admin/admin-login.cfm
