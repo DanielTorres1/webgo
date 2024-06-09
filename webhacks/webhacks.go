@@ -397,39 +397,74 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 	if regexp.MustCompile(`(?i)You have logged out of the Cisco Router|Cisco RV340 Configuration Utility`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
 		server = "Cisco Router"
-	} else if regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
 		server = "Cisco Unified Communications"
-	} else if regexp.MustCompile(`(?i)CSCOE`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)CSCOE`).MatchString(decodedHeaderResponse) {
 		server = "ciscoASA"
-	} else if regexp.MustCompile(`(?i)Cisco EPN Manage`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)Cisco EPN Manage`).MatchString(decodedHeaderResponse) {
 		server = "Cisco EPN Manage"
-	} else if regexp.MustCompile(`(?i)OLT Web Management Interface`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)OLT Web Management Interface`).MatchString(decodedHeaderResponse) {
 		server = "OLT Web Management Interface"
-	} else if regexp.MustCompile(`(?i)Janus WebRTC Server`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)Janus WebRTC Server`).MatchString(decodedHeaderResponse) {
 		server = "Janus WebRTC Server"
-	} else if regexp.MustCompile(`(?i)ui_huawei_fw_ver`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)ui_huawei_fw_ver`).MatchString(decodedHeaderResponse) {
 		server = "Huawei"
-	} else if regexp.MustCompile(`(?i)mbrico N 300Mbps WR840N`).MatchString(decodedHeaderResponse) {
+	} 
+	if regexp.MustCompile(`(?i)mbrico N 300Mbps WR840N`).MatchString(decodedHeaderResponse) {
 		server = "TL-WR840N"
 		title = "Router inalámbrico N 300Mbps WR840N"
-	} else if (regexp.MustCompile(`(?i)custom_logo/web_logo.png|baseProj/images/favicon.ico`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)webplugin.exe|BackUpBeginTimeChanged|playback_bottom_bar`).MatchString(decodedHeaderResponse)) && regexp.MustCompile(`(?i)WEB SERVICE`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if (regexp.MustCompile(`(?i)custom_logo/web_logo.png|baseProj/images/favicon.ico`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)webplugin.exe|BackUpBeginTimeChanged|playback_bottom_bar`).MatchString(decodedHeaderResponse)) && regexp.MustCompile(`(?i)WEB SERVICE`).MatchString(decodedHeaderResponse) {
 		server = "Dahua"
-	} else if regexp.MustCompile(`(?i)webplugin.exe|BackUpBeginTimeChanged|playback_bottom_bar`).MatchString(decodedHeaderResponse) {
+	} 
+	if regexp.MustCompile(`(?i)webplugin.exe|BackUpBeginTimeChanged|playback_bottom_bar`).MatchString(decodedHeaderResponse) {
 		server = "Dahua"
-	} else if regexp.MustCompile(`(?i)pgm-theatre-staging-div`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)pgm-theatre-staging-div`).MatchString(decodedHeaderResponse) {
 		server = "printer HP laser"
-	} else if regexp.MustCompile(`(?i)login/bower_components/requirejs/require.js`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)login/bower_components/requirejs/require.js`).MatchString(decodedHeaderResponse) {
 		server = "MDS Orbit Device Manager "
-	} else if regexp.MustCompile(`(?i)ATEN International Co`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)ATEN International Co`).MatchString(decodedHeaderResponse) {
 		server = "Super micro"
-	} else if regexp.MustCompile(`(?i)Juniper Web Device Manager`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)Juniper Web Device Manager`).MatchString(decodedHeaderResponse) {
 		server = "Juniper Web Device Manager"
-	} else if regexp.MustCompile(`(?i)by Cisco Systems, Inc`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)by Cisco Systems, Inc`).MatchString(decodedHeaderResponse) {
 		server = "Cisco WebUI"
-	} else if regexp.MustCompile(`(?i)fortinet|FortiWeb`).MatchString(decodedHeaderResponse) {
+	} 
+
+	if regexp.MustCompile(`(?i)www.tp-link.com/en/Support`).MatchString(decodedHeaderResponse) {
+		server = "tp-link"
+	} 
+
+	
+	
+	if regexp.MustCompile(`(?i)fortinet|FortiWeb`).MatchString(decodedHeaderResponse) {
 		server = "FortiWeb"
-		
-	} else if regexp.MustCompile(`(?i)RouterOS router`).MatchString(decodedHeaderResponse) {
+	} 
+	
+	if regexp.MustCompile(`(?i)RouterOS router`).MatchString(decodedHeaderResponse) {
 		matches := regexp.MustCompile(`<h1>(.*?)</h1>`).FindStringSubmatch(decodedHeaderResponse)
 		if len(matches) > 1 {
 			server = matches[1]
@@ -1266,9 +1301,10 @@ func checkVuln(decodedContent string) string {
 		vuln = "divulgacionInformacion"
 	}
 
-
 	if regexp.MustCompile(`(?i)"password":|\&password=`).MatchString(decodedContent) {
-		vuln = "PasswordDetected"
+		if !strings.Contains(decodedContent, `"password":$`) {
+			vuln = "PasswordDetected"
+		}
 	}
 
 	return vuln
