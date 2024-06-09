@@ -445,6 +445,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	if regexp.MustCompile(`(?i)ATEN International Co`).MatchString(decodedHeaderResponse) {
 		server = "Super micro"
 	} 
+
+	if regexp.MustCompile(`(?i)Comrex ACCESS`).MatchString(decodedHeaderResponse) {
+		server = "Audio codec server"
+	} 
+	
 	
 	if regexp.MustCompile(`(?i)Juniper Web Device Manager`).MatchString(decodedHeaderResponse) {
 		server = "Juniper Web Device Manager"
