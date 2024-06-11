@@ -3,82 +3,86 @@ package webhacks
 import (
 	"crypto/tls"
 	"compress/gzip"
-    "bufio"
+	"bufio"
 	"math/rand"
 	"unicode"
-    "fmt"
-    "net/http"
+	"fmt"
+	"net/http"
 	"net/url"
-    "os"
-    "sync"
+	"os"
+	"sync"
 	"regexp"
 	"time"
 	"io"
 	"io/ioutil"
-    "strings"
+	"strings"
+	"net/http/cookiejar"
 )
 
 type WebHacks struct {
-    // Add the necessary fields based on your requirements
-    Debug       bool
-    Show404		bool
-    Rhost       string
-    Rport       string
-    Path        string
+	Debug       bool
+	Show404		bool
+	Rhost       string
+	Rport       string
+	Path        string
 	MaxRedirect int
-	Timeout 	int
-    Error404    string
-    Threads     int
-    Proto       string
-    Cookie      string
-    Ajax        bool
-    Client      *http.Client
+	Timeout     int
+	Error404    string
+	Threads     int
+	Proto       string
+	Cookie      string
+	Ajax        bool
+	Client      *http.Client
 	Headers     http.Header
 }
 
 
+
 func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
-    // Initialize the random number generator.
-    rand.Seed(time.Now().UnixNano())
+	// Initialize the random number generator.
+	rand.Seed(time.Now().UnixNano())
 
-    // List of the most used User-Agents.
-    userAgents := []string{
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
-    }
+	// List of the most used User-Agents.
+	userAgents := []string{
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
+	}
 
-    // Select a User-Agent randomly.
-    selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
-
+	// Select a User-Agent randomly.
+	selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
 	//proxyURL, _ := url.Parse("http://127.0.0.1:8080") // burpsuite
-    // Create a custom HTTP transport that ignores SSL certificate errors
-    httpTransport := &http.Transport{
+	// Create a custom HTTP transport that ignores SSL certificate errors
+	httpTransport := &http.Transport{
 		//Proxy: http.ProxyURL(proxyURL), //burpsuite
-        TLSClientConfig: &tls.Config{
-            InsecureSkipVerify: true,
-            MinVersion:         tls.VersionTLS10,
-        },
-    }
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+		},
+	}
 
-    httpClient := &http.Client{
-        Transport: httpTransport,
-        Timeout:   time.Duration(timeoutInSeconds) * time.Second, // Set the timeout for individual requests
-        CheckRedirect: func(req *http.Request, via []*http.Request) error {
-            if len(via) >= MaxRedirect {
-                return http.ErrUseLastResponse // Stop after MaxRedirect
-            }
-            return nil // Allow the redirect
-        },
-    }
+	// Create a cookie jar to handle cookies automatically
+	cookieJar, _ := cookiejar.New(nil)
 
-    wh := &WebHacks{
-        Client:       httpClient,
-        Headers:      http.Header{},
-        Timeout:      timeoutInSeconds,
-        MaxRedirect:  MaxRedirect,
-    }
+	httpClient := &http.Client{
+		Transport: httpTransport,
+		Timeout:   time.Duration(timeoutInSeconds) * time.Second, // Set the timeout for individual requests
+		Jar:       cookieJar, // Use the cookie jar
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= MaxRedirect {
+				return http.ErrUseLastResponse // Stop after MaxRedirect
+			}
+			return nil // Allow the redirect
+		},
+	}
 
-    // Configure headers
+	wh := &WebHacks{
+		Client:      httpClient,
+		Headers:     http.Header{},
+		Timeout:     timeoutInSeconds,
+		MaxRedirect: MaxRedirect,
+	}
+
+	// Configure headers
 	wh.Headers.Set("User-Agent", selectedUserAgent)
 	wh.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	wh.Headers.Set("Accept-Language", "en-US,en;q=0.5")
@@ -87,11 +91,11 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 	wh.Headers.Set("Sec-Fetch-Mode", "navigate")
 	wh.Headers.Set("Sec-Fetch-Site", "none")
 
-    if wh.Ajax {
-        wh.Headers.Set("X-Requested-With", "XmlHttpRequest")
-    }
+	if wh.Ajax {
+		wh.Headers.Set("X-Requested-With", "XmlHttpRequest")
+	}
 
-    return wh
+	return wh
 }
 
 func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
@@ -136,7 +140,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			}
 		}
 		lastURL = resp.Request.URL.String()
-		status = resp.Status
+		StatusCode := resp.StatusCode
+		if debug {
+			fmt.Printf("statusssss: (%s)\n", StatusCode)
+		}
+		
 
 		if urlOriginal != lastURL {
 			poweredBy += "|301 Moved"
@@ -197,7 +205,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		
 		//###### check redirect with content ##########
 		responseLength := len(decodedResponse)
-		if resp.StatusCode >= 300 && resp.StatusCode <= 399 && responseLength > 900 {
+		if resp.StatusCode >= 300 && resp.StatusCode <= 399 && responseLength > 700 {
 			vulnerability = "Redirect with content|"
 			//break
 		}
@@ -206,9 +214,14 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 		//#####################################
 		
-		redirectURL = getRedirect(decodedResponse)
-		if debug {
-			fmt.Printf("redirect_url (%s)\n", redirectURL)
+		// Si la respuesta tiene 700 o mas, ya estamos en el destino 
+		if responseLength < 700 {
+			redirectURL = getRedirect(decodedResponse)
+			if debug {
+				fmt.Printf("redirect_url (%s)\n", redirectURL)
+			}
+		} else {
+			redirectURL = ""
 		}
 
 		if redirectURL != "" {
@@ -449,6 +462,16 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	if regexp.MustCompile(`(?i)Comrex ACCESS`).MatchString(decodedHeaderResponse) {
 		server = "Audio codec server"
 	} 
+
+	//imprimir fmt.Printf("decodedHeaderResponse %s\n", decodedHeaderResponse)
+	if regexp.MustCompile(`(?i)javax.faces`).MatchString(decodedHeaderResponse) {
+		server = "JavaServer Faces"
+	} 
+	
+	if regexp.MustCompile(`(?i)JSP/`).MatchString(decodedHeaderResponse) {
+		server = "JavaServer Pages"
+	} 
+	
 	
 	
 	if regexp.MustCompile(`(?i)Juniper Web Device Manager`).MatchString(decodedHeaderResponse) {
@@ -677,6 +700,10 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 	if strings.Contains(decodedHeaderResponse, "GASOLINERA") {
         poweredBy += "|GASOLINERA"
+    }
+
+	if strings.Contains(decodedHeaderResponse, "<app-root>") {
+        poweredBy += "|Angular"
     }
 
 	if regexp.MustCompile(`Microsoftsharepointteamservices`).MatchString(decodedHeaderResponse) {
