@@ -10,6 +10,7 @@ reset
 vendor
 telescope
 q/openapi
+Log/log.txt
 horizon
 app/database/
 application.wadl
