@@ -9,6 +9,8 @@ pswa
 reset
 vendor
 telescope
+admin/env.js
+env.js
 q/openapi
 Log/log.txt
 horizon

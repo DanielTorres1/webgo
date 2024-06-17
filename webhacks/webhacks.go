@@ -744,6 +744,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|AMLC COMPLIANCE"
     }
 
+	if regexp.MustCompile(`Set-Cookie: CHATBOT=`).MatchString(decodedHeaderResponse) {
+        poweredBy += "|Botpress"
+		server = "Botpress"
+    }
+
 	if regexp.MustCompile(`XSRF-TOKEN|_session`).MatchString(decodedHeaderResponse) {
 		poweredBy += "|api-endpoint"
 	}
@@ -762,7 +767,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     if regexp.MustCompile(`laravel_session`).MatchString(decodedHeaderResponse) {
         poweredBy += "|laravel"
     }
-    if regexp.MustCompile(`wp-content|wp-admin|wp-caption`).MatchString(decodedHeaderResponse) {
+    if regexp.MustCompile(`content="WordPress|wp-json`).MatchString(decodedHeaderResponse) {
 		re := regexp.MustCompile(`content="WordPress ([\d.]+)"`)
 		match := re.FindStringSubmatch(decodedHeaderResponse)
 		if len(match) > 1 {
@@ -864,7 +869,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		server = "Huawei"
 	}
 
-	if regexp.MustCompile(`(?i)Huawei Technologies Co`).MatchString(decodedHeaderResponse) {
+	if regexp.MustCompile(`(?i)Huawei Technologies Co|HG8145V5`).MatchString(decodedHeaderResponse) {
 		
 		title, server = "optical network terminal (ONT)", "Huawei"
 		productNameRegex := regexp.MustCompile(`(?i)var ProductName = "(.*?)"`)
@@ -1041,7 +1046,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						vuln = checkVuln(bodyContent)
 					}
 
-					if strings.Contains(bodyContent, "Your access is denied") {
+					if strings.Contains(bodyContent, "Your access is denied") || strings.Contains(bodyContent, "error al procesar esta solicitud") {
 						current_status = 404
 					}
 					
@@ -1333,12 +1338,18 @@ func checkVuln(decodedContent string) string {
 		vuln = "divulgacionInformacion"
 	}
 
-	if regexp.MustCompile(`(?i)"password":|\&password=`).MatchString(decodedContent) {
-		if !strings.Contains(decodedContent, `"password":$`) {
+	pattern := `(?i)"password":|\&password=` //positivo
+	matched, _ := regexp.MatchString(pattern, decodedContent)
+	if matched {
+		if !strings.Contains(decodedContent, `"password":$`) && //negaticvo
+			!strings.Contains(decodedContent, `password=**`) &&
+			!strings.Contains(decodedContent, `Password":"Passwo`) &&
+			!strings.Contains(decodedContent, `Password":"Cla`) {
 			vuln = "PasswordDetected"
 		}
 	}
 
+	
 	return vuln
 }
 
