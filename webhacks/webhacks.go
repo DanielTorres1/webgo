@@ -50,7 +50,7 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 
 	// Select a User-Agent randomly.
 	selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
-	//proxyURL, _ := url.Parse("http://127.0.0.1:8080") // burpsuite
+	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
 	// Create a custom HTTP transport that ignores SSL certificate errors
 	httpTransport := &http.Transport{
 		//Proxy: http.ProxyURL(proxyURL), //burpsuite
@@ -108,11 +108,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	poweredBy := ""
 	redirectURL := "no"
 	var urlOriginal string
-	// if rport == "443" || rport == "80" {
-	// 	urlOriginal = proto + "://" + rhost + path
-	// } else {
-	urlOriginal = proto + "://" + rhost + ":" + rport + path
-	//}
+	if rport == "443" || rport == "80" {
+	 	urlOriginal = proto + "://" + rhost + path
+	 } else {
+		urlOriginal = proto + "://" + rhost + ":" + rport + path
+	}
 	var finalURLRedirect string
 	var decodedResponse string
 	var resp *http.Response 
@@ -857,6 +857,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
             title = "Web Service"
         }
     }
+
+	if regexp.MustCompile(`logoTyco`).MatchString(decodedHeaderResponse) {
+        poweredBy += "|Tyco"
+    }
+
     if regexp.MustCompile(`login__block__header`).MatchString(decodedHeaderResponse) {
         poweredBy += "|login"
         if title == "" {
@@ -868,6 +873,23 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	if regexp.MustCompile(`(?i)waiting\.\.\.`).MatchString(decodedHeaderResponse) {
 		server = "Huawei"
 	}
+
+	
+	if regexp.MustCompile(`(?i)TP-Link Corporation Limited`).MatchString(decodedHeaderResponse) {
+		
+		server = "TP-Link"
+
+		productNameRegex := regexp.MustCompile(`(?i)var modelDesc="(.*?)"`)
+		if matches := productNameRegex.FindStringSubmatch(decodedHeaderResponse); len(matches) > 1 {
+			title = matches[1]
+		}
+
+		productNameRegex = regexp.MustCompile(`(?i)modelName="(.*?)"`)
+		if matches := productNameRegex.FindStringSubmatch(decodedHeaderResponse); len(matches) > 1 {
+			poweredBy += "|" + matches[1]
+		}
+	}
+
 
 	if regexp.MustCompile(`(?i)Huawei Technologies Co|HG8145V5`).MatchString(decodedHeaderResponse) {
 		
@@ -1247,7 +1269,7 @@ func getRedirect(decodedResponse string) string {
 			// Remove double quotes from the redirect URL
 			redirectURL = regexp.MustCompile(`"`).ReplaceAllString(redirectURL, "")
 
-			if redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") || strings.Contains(redirectURL, "microsoftonline")  {
+			if redirectURL == "login.html" || redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") || strings.Contains(redirectURL, "microsoftonline")  {
 				redirectURL = ""
 			}
 			return redirectURL
@@ -1307,9 +1329,16 @@ func checkVuln(decodedContent string) string {
 		vuln = "OpenPhpMyAdmin"
 	}
 
+	//fmt.Printf("decodedContent (%s)\n", decodedContent)
 	if regexp.MustCompile(`(?i)var user = "admin";`).MatchString(decodedContent) {
-		vuln = "OpenMikrotik"
+
+		if !strings.Contains(decodedContent, `INCLUDE_USER_RESTRICTION`) { //negaticvo
+			vuln = "OpenMikrotik"
+		}
+		
 	}
+
+	
 
 
 	re := regexp.MustCompile(`(?i)(undefined function|already sent by|Undefined offset|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Exception in thread|Exception information)`)
@@ -1338,13 +1367,24 @@ func checkVuln(decodedContent string) string {
 		vuln = "divulgacionInformacion"
 	}
 
+	decodedContentLower := strings.ToLower(decodedContent)
+	
 	pattern := `(?i)"password":|\&password=` //positivo
 	matched, _ := regexp.MatchString(pattern, decodedContent)
 	if matched {
-		if !strings.Contains(decodedContent, `"password":$`) && //negaticvo
-			!strings.Contains(decodedContent, `password=**`) &&
-			!strings.Contains(decodedContent, `Password":"Passwo`) &&
-			!strings.Contains(decodedContent, `Password":"Cla`) {
+		if !strings.Contains(decodedContentLower, `"password":$`) && //negativo comilla doble
+			!strings.Contains(decodedContentLower, `password=**`) &&
+			!strings.Contains(decodedContentLower, `password":"password`) &&
+			!strings.Contains(decodedContentLower, `password=" + encodeuricomponent`) &&
+			!strings.Contains(decodedContentLower, `password":"clave`)&&
+			!strings.Contains(decodedContentLower, `password":"http`)&&
+
+			!strings.Contains(decodedContentLower, `password':$`) && //negativo comilla simple
+			!strings.Contains(decodedContentLower, `password':'password`) &&
+			!strings.Contains(decodedContentLower, `password=' + encodeuricomponent`) &&
+			!strings.Contains(decodedContentLower, `password':'clave`) &&
+			!strings.Contains(decodedContentLower, `password':'http`){
+				
 			vuln = "PasswordDetected"
 		}
 	}
