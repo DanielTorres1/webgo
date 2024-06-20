@@ -1,0 +1,16 @@
+admin/files/
+app/database/
+backup/
+.bzr/
+CVS/
+database/
+db/
+.git/
+.git2/
+.github/
+pswa/
+rdweb/
+RDWeb/
+respaldo/
+sql/
+storage/logs/

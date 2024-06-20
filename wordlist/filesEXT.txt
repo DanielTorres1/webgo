@@ -1,3 +1,11 @@
+cc_tu.EXT
+d_usu.EXT
+gestion_personas.EXT
+gestion_personas2.EXT
+registro_usuario_ejecuta.EXT
+registro_usuario_ejecutam.EXT
+tipouser.EXT
+usuarioadm.EXT
 0001.EXT
 000.EXT
 0010.EXT

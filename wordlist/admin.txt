@@ -66,6 +66,11 @@ admin/account.html
 admin/account.js
 admin/account.php
 admin/admin.asp
+_adm/
+~adm/
+_admin/
+~admin/
+~administrator
 admin/admin.html
 admin/admin.js
 admin/admin-login.asp

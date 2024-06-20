@@ -27,19 +27,23 @@ print_ascii_art
 
 echo -e "$OKBLUE [+] Instalando WEB hacks $RESET" 
 cd webhacks
+go get github.com/fatih/color
 go build
 cd ..
 go build web-buster.go
 go build webData.go
+go build passWeb.go
 
 cp webData /usr/bin/
 cp web-buster /usr/bin/
+cp passWeb /usr/bin/
 
 mkdir /usr/share/webhacks 2>/dev/null
 cp -R wordlist /usr/share/webhacks
 
 chmod a+x /usr/bin/webData
 chmod a+x /usr/bin/web-buster
+chmod a+x /usr/bin/passWeb
 
 
 echo -e " [+] INSTALACION COMPLETA"

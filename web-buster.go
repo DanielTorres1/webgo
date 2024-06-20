@@ -101,8 +101,6 @@ func main() {
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/registroHabilitado.txt", "")
 	case "api":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/api.txt", "")
-	case "files":
-		webHacks.Dirbuster("/usr/share/webhacks/wordlist/files.txt", "")
 	case "admin":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/admin.txt", "")
 	case "archivosPeligrosos":
@@ -110,7 +108,9 @@ func main() {
 	case "sap":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/sap.txt", "")
     case "folders":
-        webHacks.Dirbuster("/usr/share/webhacks/wordlist/directorios.txt", "")
+        webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders.txt", "")
+	case "folders-short":
+        webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders-short.txt", "")
     case "cgi":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/cgi.txt", "")
     case "webserver":
@@ -142,12 +142,11 @@ func main() {
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/filesEXT.txt", "jsp")
 	
 	case "apacheServer":
-        webHacks.Dirbuster("/usr/share/webhacks/wordlist/files.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/graphQL.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/admin.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/registroHabilitado.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/archivosPeligrosos.txt", "")
-		webHacks.Dirbuster("/usr/share/webhacks/wordlist/directorios.txt", "")
+		webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/cgi.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/webserver.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/backdoorsApache.txt", "")
@@ -158,7 +157,7 @@ func main() {
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/admin.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/registroHabilitado.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/archivosPeligrosos.txt", "")
-		webHacks.Dirbuster("/usr/share/webhacks/wordlist/directorios.txt", "")
+		webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/webserver.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/backdoorsIIS.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/sharepoint.txt", "")
@@ -173,7 +172,7 @@ func main() {
 	case "tomcatServer":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/admin.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/archivosPeligrosos.txt", "")
-		webHacks.Dirbuster("/usr/share/webhacks/wordlist/directorios.txt", "")
+		webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/webserver.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/filesEXT.txt","jsp")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/filesEXT.txt","html")
