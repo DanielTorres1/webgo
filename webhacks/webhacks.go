@@ -1454,7 +1454,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		title = "Cisco switch"
 	}
 	
-	if regexp.MustCompile(`(?i)pfsense-logo`).MatchString(decodedHeaderResponse) {
+	if regexp.MustCompile(`(?i)pfsense-logo|Login to pfSense`).MatchString(decodedHeaderResponse) {
 		title = "Pfsense"
 	}
 	
@@ -1519,9 +1519,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		server = "Janus WebRTC Server"
 	} 
 	
-	if regexp.MustCompile(`(?i)ui_huawei_fw_ver`).MatchString(decodedHeaderResponse) {
-		server = "Huawei"
-	} 
+	
 	if regexp.MustCompile(`(?i)mbrico N 300Mbps WR840N`).MatchString(decodedHeaderResponse) {
 		server = "TL-WR840N"
 		title = "Router inalámbrico N 300Mbps WR840N"
@@ -1957,7 +1955,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     }
 
 	
-	if regexp.MustCompile(`(?i)waiting\.\.\.`).MatchString(decodedHeaderResponse) {
+	if regexp.MustCompile(`(?i)waiting\.\.\.|ui_huawei_fw_ver`).MatchString(decodedHeaderResponse) {
 		server = "Huawei"
 	}
 
@@ -1978,7 +1976,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	}
 
 
-	if regexp.MustCompile(`(?i)Huawei Technologies Co|HG8145V5`).MatchString(decodedHeaderResponse) {
+	if regexp.MustCompile(`(?i)Huawei Technologies Co|HG8145V5|EG8145X6`).MatchString(decodedHeaderResponse) {
 		
 		title, server = "optical network terminal (ONT)", "Huawei"
 		productNameRegex := regexp.MustCompile(`(?i)var ProductName = "(.*?)"`)
