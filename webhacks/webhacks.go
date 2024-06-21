@@ -2180,6 +2180,85 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 }
 
 
+// only HEAD requests
+func (wh *WebHacks) BackupBuster(urlFile string) {
+
+	headers := wh.Headers
+    debug := wh.Debug
+    show404 := wh.Show404
+    rhost := wh.Rhost
+    rport := wh.Rport
+    path := wh.Path
+    error404 := wh.Error404
+    threads := wh.Threads
+    proto := wh.Proto
+	ajax := wh.Ajax
+	timeout := wh.Timeout
+	MaxRedirect := wh.MaxRedirect
+
+	if debug {
+		fmt.Printf("Configuracion: Hilos:%s  proto:%s  Ajax: %s error404:%s show404 %s timeout %s debug %s MaxRedirect %s \n\n", threads, proto, ajax, error404, show404,timeout, debug, MaxRedirect)
+	}
+
+
+	file, err := os.Open(urlFile)
+	if err != nil {
+		fmt.Printf("ERROR: Cannot open the file %s\n", urlFile)
+		return
+	}
+	defer file.Close()
+
+	var links []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		urlLine := scanner.Text()
+
+		//adicionar puerto solo si es diferente a 80 o 443
+		 portStr := ""
+		 if rport != "80" && rport != "443" {
+		 	portStr = ":" + rport
+		 }
+
+		urlFinal := proto + "://" + rhost  + portStr + path + urlLine
+		links = append(links, urlFinal)
+	}
+
+
+	var wg sync.WaitGroup
+	wg.Add(threads)
+
+	urlsChan := make(chan string, len(links))
+	// Start a pool of worker goroutines.
+	for i := 0; i < threads; i++ {
+		go func() {
+			defer wg.Done()
+			for urlLine := range urlsChan {				
+				resp, err := wh.Dispatch(urlLine, "HEAD", "", headers)
+				if err != nil {
+					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
+					continue
+				}
+				defer resp.Body.Close()
+				current_status := resp.StatusCode
+				
+				if (show404 && current_status == 404) || current_status != 404 {
+
+					fmt.Printf("%d | %s \n", current_status, urlLine)
+				}
+			}
+		}()
+	}
+
+	// Send URLs to the channel for processing by the workers.
+	for _, urlLine := range links {
+		urlsChan <- urlLine
+	}
+	close(urlsChan)
+
+	wg.Wait() // Wait for all goroutines to finish.
+}
+
+
 func onlyAscii(text string) string {
 	replacements := map[rune]rune{
 		'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ñ': 'n',
@@ -2196,7 +2275,7 @@ func onlyAscii(text string) string {
 	return result.String()
 }
 
-func (wh *WebHacks) Backupbuster(urlFile string) {
+func (wh *WebHacks) ConfigBuster(urlFile string) {
 	headers := wh.Headers
 	debug := wh.Debug
 	show404 := wh.Show404

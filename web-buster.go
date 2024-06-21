@@ -97,8 +97,8 @@ func main() {
 	
 
 	switch mode {
-	case "registroHabilitado":
-		webHacks.Dirbuster("/usr/share/webhacks/wordlist/registroHabilitado.txt", "")
+	case "backups":
+		webHacks.BackupBuster("/usr/share/webhacks/wordlist/backups.txt")
 	case "api":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/api.txt", "")
 	case "admin":
@@ -165,10 +165,10 @@ func main() {
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/filesEXT.txt","asp")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/filesEXT.txt","aspx")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/filesEXT.txt","html")
-	case "backupApache":
-		webHacks.Backupbuster("/usr/share/webhacks/wordlist/configFilesApache.txt")
-	case "backupIIS":
-		webHacks.Backupbuster("/usr/share/webhacks/wordlist/configFilesIIS.txt")
+	case "configApache":
+		webHacks.ConfigBuster("/usr/share/webhacks/wordlist/configFilesApache.txt")
+	case "configIIS":
+		webHacks.ConfigBuster("/usr/share/webhacks/wordlist/configFilesIIS.txt")
 	case "tomcatServer":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/admin.txt", "")
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/archivosPeligrosos.txt", "")
