@@ -117,7 +117,6 @@ httpd.ini
 httpd/logs/access.log
 httpd/logs/error.log
 import_error.log
-info.php
 .ini
 joomla.xml
 License.config

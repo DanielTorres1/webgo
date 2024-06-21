@@ -11,6 +11,7 @@ app/.env
 application/.env
 application.properties
 application.wadl
+storage/logs/laravel.log
 backend/.env
 CFIDE/scripts/ajax/FCKeditor/editor/filemanager/connectors/cfm/upload.cfm
 co/?action=usuario
@@ -188,8 +189,8 @@ vars.php
 wp-includes/vars.php
 swagger-ui
 swagger-ui.html
+web.config
 telescope
-test
 userlist.txt
 user/register
 v1/explorer
