@@ -54,10 +54,10 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 
 	// Select a User-Agent randomly.
 	selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
-	proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
 	// Create a custom HTTP transport that ignores SSL certificate errors
 	httpTransport := &http.Transport{
-		Proxy: http.ProxyURL(proxyURL), //burpsuite
+		//Proxy: http.ProxyURL(proxyURL), //burpsuite
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
@@ -1958,7 +1958,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     }
 
 	
-	if regexp.MustCompile(`(?i)waiting\.\.\.|ui_huawei_fw_ver`).MatchString(decodedHeaderResponse) {
+	if regexp.MustCompile(`(?i)waiting\.\.\.|ui_huawei_fw_ver|CertInstallFF`).MatchString(decodedHeaderResponse) {
 		server = "Huawei"
 	}
 
