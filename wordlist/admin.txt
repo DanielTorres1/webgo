@@ -98,8 +98,6 @@ admin_area/index.asp
 adminarea/index.asp
 admin_area/index.html
 adminarea/index.html
-admin_area/index.php
-adminarea/index.php
 admin_area/login.asp
 adminarea/login.asp
 admin_area/login.cfm
@@ -134,7 +132,6 @@ admindb/
 adm/index.asp
 adm/index.cfm
 adm/index.html
-adm/index.php
 adminhelp
 admin/home.asp
 admin/home.cfm
@@ -144,7 +141,6 @@ admin.html
 admin/index.asp
 admin/index.cfm
 admin/index.html
-admin/index.php
 admininistration/
 administation/
 administer/
@@ -255,7 +251,6 @@ bigadmin/
 blogindex/
 cadmins/
 ccms/
-ccms/index.php
 ccms/login.php
 ccp14admin/
 CFIDE/administrator/
@@ -332,12 +327,12 @@ memberadmin.cfm
 memberadmin.php
 memlogin/
 meta_login/
+modelsearch/
 modelsearch/admin.asp
 modelsearch/admin.html
 modelsearch/admin.php
 modelsearch/index.asp
 modelsearch/index.html
-modelsearch/index.php
 modelsearch/login.asp
 modelsearch/login.html
 modelsearch/login.php
@@ -370,7 +365,6 @@ panel-administracion/admin.html
 panel-administracion/admin.php
 panel-administracion/index.asp
 panel-administracion/index.html
-panel-administracion/index.php
 panel-administracion/login.asp
 panel-administracion/login.html
 panel-administracion/login.php
@@ -451,7 +445,6 @@ phpMyAdmin-2.8.2/
 phpmyadmin3/
 phpMyAdmin4/
 phpMyAdminBackup/
-phpmyadmin/index.php
 phpmyadmin-old/
 phppgadmin/
 phpRedisAdmin/
@@ -474,8 +467,8 @@ Server.html
 Server.php
 showlogin/
 simpleLogin/
+siteadmin/
 siteadmin/index.asp
-siteadmin/index.php
 siteadmin/login.asp
 siteadmin/login.html
 siteadmin/login.php
@@ -528,7 +521,6 @@ webadmin.cfm
 webadmin.html
 webadmin/index.asp
 webadmin/index.html
-webadmin/index.php
 webadmin/login.asp
 webadmin/login.html
 webadmin/login.php

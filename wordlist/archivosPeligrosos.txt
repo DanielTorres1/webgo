@@ -74,7 +74,6 @@ searchreplacedb2.php
 .ssh
 reset
 .subversion
-.svn/
 swagger
 swagger/index.html
 swagger/swagger-ui.html
@@ -84,11 +83,6 @@ apis.json
 _archive
 _assets
 awstats.conf
-back.sql
-_backup
-.bak
-~.bak
-_baks
 .bash_history
 .bashrc
 ~bin
@@ -161,9 +155,6 @@ _old
 _overlay
 _pages
 .passwd
-.git/
-.git2/
-.github/
 .perf
 .profile
 putty.reg

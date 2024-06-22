@@ -11,6 +11,10 @@
 1.sql.tar
 1.sql.tar.bz2
 1.sql.tar.bzip2
+back.sql
+_backup
+.bak
+~.bak
 1.sql.tar.gz
 1.sql.tar.gzip
 1.sql.tgz
@@ -310,6 +314,7 @@ ask.bak
 astracker.old
 auth.sql
 AuthZ2.sql
+latest.tar.gz
 AuthZ.sql
 autoconfig.backup
 autoconfig.bd

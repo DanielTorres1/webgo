@@ -8,9 +8,15 @@ db/
 .git/
 .git2/
 .github/
+correspondencia/
+Produccion/
 pswa/
 rdweb/
 RDWeb/
 respaldo/
 sql/
+.git/
+.git2/
+.github/
+.svn/
 storage/logs/

@@ -279,21 +279,34 @@ func checkVuln(decodedContent string) string {
 
 	decodedContentLower := strings.ToLower(decodedContent)
 	
-	pattern := `(?i)"password":|\&password=` //positivo
+	pattern := `(?i)"password":|'password':|\&password=` //positivo
 	matched, _ := regexp.MatchString(pattern, decodedContent)
 	if matched {
 		if !strings.Contains(decodedContentLower, `"password":$`) && //negativo comilla doble
 			!strings.Contains(decodedContentLower, `password=**`) &&
-			!strings.Contains(decodedContentLower, `password":"password`) &&
-			!strings.Contains(decodedContentLower, `password=" + encodeuricomponent`) &&
-			!strings.Contains(decodedContentLower, `password":"clave`)&&
-			!strings.Contains(decodedContentLower, `password":"http`)&&
-
-			!strings.Contains(decodedContentLower, `password':$`) && //negativo comilla simple
-			!strings.Contains(decodedContentLower, `password':'password`) &&
-			!strings.Contains(decodedContentLower, `password=' + encodeuricomponent`) &&
-			!strings.Contains(decodedContentLower, `password':'clave`) &&
-			!strings.Contains(decodedContentLower, `password':'http`){
+			!strings.Contains(decodedContentLower, `"password":"password`) &&
+			!strings.Contains(decodedContentLower, `"password=" + encodeuricomponent`) &&
+			!strings.Contains(decodedContentLower, `"password":"clave`)&&
+			!strings.Contains(decodedContentLower, `"password":"http`)&&
+			!strings.Contains(decodedContentLower, `"password":"Contrase`)&&
+			!strings.Contains(decodedContentLower, `"password":{required`) &&
+			!strings.Contains(decodedContentLower, `"passwords":{"password`) &&
+			!strings.Contains(decodedContentLower, `"password":{"enforced`) &&
+			!strings.Contains(decodedContentLower, `"password":{"enabled`) &&
+			!strings.Contains(decodedContentLower, `case "password":`)&&
+			!strings.Contains(decodedContentLower, `tac@cisco.com`)&&
+			!strings.Contains(decodedContentLower, `password=pass`)&&
+			!strings.Contains(decodedContentLower, `password=trial`)&&
+			!strings.Contains(decodedContentLower, `'password':{'enforced`) &&
+			!strings.Contains(decodedContentLower, `'password':{'enabled`) &&
+			!strings.Contains(decodedContentLower, `'passwords':{'password`) &&
+			!strings.Contains(decodedContentLower, `'password':{required`) &&
+			!strings.Contains(decodedContentLower, `'password':$`) && //negativo comilla simple
+			!strings.Contains(decodedContentLower, `'password':'password`) &&
+			!strings.Contains(decodedContentLower, `'password=' + encodeuricomponent`) &&
+			!strings.Contains(decodedContentLower, `'password':'clave`) &&
+			!strings.Contains(decodedContentLower, `'password':'http`)&&
+			!strings.Contains(decodedContentLower, `'password':"Contrase`){
 				
 			vuln = "PasswordDetected"
 		}
@@ -1439,6 +1452,8 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		title = "Dell iDRAC"
 	}
 	
+	
+
 	if regexp.MustCompile(`(?i)Acceso no autorizado`).MatchString(decodedHeaderResponse) {
 		if title == "" {
 			title = "Acceso no autorizado"
@@ -1586,6 +1601,13 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			server = matches[1]
 		}
 	}
+
+	if regexp.MustCompile(`(?i)airos_logo`).MatchString(decodedHeaderResponse) {
+		title = "airOS"
+		server = "Ubiquiti"
+	}
+
+
 	
 
 	// ############# powered by ##############
@@ -1926,6 +1948,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         server = "Sophos"
     }
 
+	if regexp.MustCompile(`(?i)name="password"`).MatchString(decodedHeaderResponse) {
+		poweredBy += "|login"
+	}
+
+
 	
 
     if regexp.MustCompile(`theme-taiga.css`).MatchString(decodedHeaderResponse) {
@@ -2156,7 +2183,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						vuln = checkVuln(bodyContent)
 					}
 
-					if strings.Contains(bodyContent, "Your access is denied") || strings.Contains(bodyContent, "error al procesar esta solicitud") {
+					if strings.Contains(bodyContent, "Your access is denied") || strings.Contains(bodyContent, "error al procesar esta solicitud") || strings.Contains(bodyContent, "&enckey=") || strings.Contains(bodyContent, "This is the default text for a report") || strings.Contains(bodyContent, "Unauthorized Request Blocked") {
 						current_status = 404
 					}
 					
@@ -2201,6 +2228,26 @@ func (wh *WebHacks) BackupBuster(urlFile string) {
 		fmt.Printf("Configuracion: Hilos:%s  proto:%s  Ajax: %s error404:%s show404 %s timeout %s debug %s MaxRedirect %s \n\n", threads, proto, ajax, error404, show404,timeout, debug, MaxRedirect)
 	}
 
+	/////// test
+	//adicionar puerto solo si es diferente a 80 o 443
+	portStr := ""
+	if rport != "80" && rport != "443" {
+		portStr = ":" + rport
+	}
+
+    urlTest := proto + "://" + rhost  + portStr + path + "non-extisss.rar"
+
+	resp_test, err_test := wh.Dispatch(urlTest, "HEAD", "", headers)
+	if err_test != nil {
+		fmt.Printf("Failed to get URL %s: %v\n", urlTest, err_test)
+	}
+	status_test := resp_test.StatusCode
+				
+	if (status_test == 200 ) {
+		fmt.Printf("OK 200 to anything")
+		return
+	}
+	////////////////////////
 
 	file, err := os.Open(urlFile)
 	if err != nil {
@@ -2215,7 +2262,6 @@ func (wh *WebHacks) BackupBuster(urlFile string) {
 		urlLine := scanner.Text()
 
 		//adicionar puerto solo si es diferente a 80 o 443
-		 portStr := ""
 		 if rport != "80" && rport != "443" {
 		 	portStr = ":" + rport
 		 }
