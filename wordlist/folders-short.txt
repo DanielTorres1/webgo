@@ -12,6 +12,10 @@ correspondencia/
 Produccion/
 pswa/
 rdweb/
+sav/
+copy/
+tmp/
+txt/
 RDWeb/
 respaldo/
 sql/

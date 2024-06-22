@@ -493,7 +493,6 @@ constants.php.bak
 contact.db
 content.sql
 convert_infopages_to_ezpages.sql
-copy/
 core.zip
 countries.sql
 country.sql
@@ -1088,7 +1087,6 @@ sample.sql
 samples.sql
 sample.zip
 sandbox.db
-sav/
 .save
 save/
 save.7z
@@ -1266,10 +1264,8 @@ thumbs.db
 Thumbs.db
 tiny_mce.tar
 .tmp
-tmp/
 todo.sql
 training.old
-txt/
 .txt.gz
 ucp.php.bak
 uninstall.sql
