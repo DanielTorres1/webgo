@@ -13,6 +13,7 @@ Produccion/
 pswa/
 rdweb/
 sav/
+QRImagen/
 copy/
 tmp/
 txt/
