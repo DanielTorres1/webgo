@@ -2183,7 +2183,16 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						vuln = checkVuln(bodyContent)
 					}
 
-					if strings.Contains(bodyContent, "Your access is denied") || strings.Contains(bodyContent, "error al procesar esta solicitud") || strings.Contains(bodyContent, "&enckey=") || strings.Contains(bodyContent, "This is the default text for a report") || strings.Contains(bodyContent, "Unauthorized Request Blocked") {
+					errors := []string{
+						"Your access is denied",
+						"error al procesar esta solicitud",
+						"&enckey=",
+						"This is the default text for a report",
+						"Unauthorized Request Blocked",
+						"Undefined offset",
+					}
+					
+					if containsAny(bodyContent, errors) {
 						current_status = 404
 					}
 					
