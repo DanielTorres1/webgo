@@ -183,7 +183,6 @@ swagger-ui.html
 web.config
 telescope
 userlist.txt
-user/register
 v1/explorer
 v1/graphiql
 v1.x/swagger-ui.html

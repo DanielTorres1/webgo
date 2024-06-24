@@ -103,6 +103,15 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 }
 
 
+func containsAny(s string, substrings []string) bool {
+	for _, substr := range substrings {
+		if strings.Contains(s, substr) {
+			return true
+		}
+	}
+	return false
+}
+
 func ObtenerHashMD5(cadena string) string {
 	hash := md5.Sum([]byte(cadena))
 	return hex.EncodeToString(hash[:])
@@ -221,9 +230,9 @@ func getRedirect(decodedResponse string) string {
 func checkVuln(decodedContent string) string {
 	vuln := ""
 
-	if regexp.MustCompile(`\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.16\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b`).MatchString(decodedContent) {
-		vuln = "IPinterna"
-	}
+	// if regexp.MustCompile(`\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.16\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b`).MatchString(decodedContent) {
+	// 	vuln = "IPinterna"
+	// }
 	
 
 	if regexp.MustCompile(`(?m)Lorem ipsum`).MatchString(decodedContent) {
