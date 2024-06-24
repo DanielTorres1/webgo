@@ -176,25 +176,29 @@ func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, hea
 	
 
 // getRedirect extracts a redirect URL from the decoded HTML response.
+
 func getRedirect(decodedResponse string) string {
 	// Define patterns to search for redirect URLs
+	
 	patterns := []string{
-		`meta http-equiv=["']Refresh["'] content=["']0; ?URL= ?(.*?)["']`,
-		`meta http-equiv=["']refresh["'] content=["']0; ?URL= ?(.*?)["']`,
-		`meta http-equiv=["']Refresh["'] content=["']1; ?URL= ?(.*?)["']`,
-		`meta http-equiv=["']refresh["'] content=["']1; ?URL= ?(.*?)["']`,
-		`window.onload=function\(\) urlLine ="(.*?)"`,
-		`window.location="(.*?)"`,
-		`location.href="(.*?)"`,
-		`window.location.href = "(.*?)"`,
-		`window.location = "(.*?)"`,
-		`top.location="(.*?)"`,
-		`location.replace\("(.*?)"`,
-		`jumpUrl = "(.*?)"`,
-		`top.document.location.href = "(.*?)"`,
-		`http-equiv="refresh" content="0.1;urlLine=(.*?)"`,
-		`parent.location="(.*?)"`,
-		`redirect_suffix = "(.*?)"`,
+		`meta http-equiv=["']Refresh["'] content=["']0; ?URL= ?['"](.*?)['"]`,
+		`meta http-equiv=["']refresh["'] content=["']0; ?URL= ?['"](.*?)['"]`,
+		`meta http-equiv=["']Refresh["'] content=["']1; ?URL= ?['"](.*?)['"]`,
+		`meta http-equiv=["']refresh["'] content=["']1; ?URL= ?['"](.*?)['"]`,
+		`window.onload=function\(\) urlLine ?= ?['"](.*?)['"]`,
+		`window.location ?= ?['"](.*?)['"]`,
+		`location.href ?= ?['"](.*?)['"]`,
+		`window.location.href ?= ?['"](.*?)['"]`,
+		`window.location ?= ?['"](.*?)['"]`,
+		`top.location ?= ?['"](.*?)['"]`,
+		`location.replace\(['"](.*?)['"]\)`,
+		`location ?= ?['"](.*?)['"]`,
+		`jumpUrl ?= ?['"](.*?)['"]`,
+		`top.document.location.href ?= ?['"](.*?)['"]`,
+		`http-equiv=["']refresh["'] content=["']0.1;urlLine=['"](.*?)['"]`,
+		`parent.location ?= ?['"](.*?)['"]`,
+		`redirect_suffix ?= ?['"](.*?)['"]`,
+		`The document has moved ?<a href=['"](.*?)['"]`,
 	}
 
 	// Iterate over patterns to find a match
@@ -215,7 +219,7 @@ func getRedirect(decodedResponse string) string {
 			// Remove double quotes from the redirect URL
 			redirectURL = regexp.MustCompile(`"`).ReplaceAllString(redirectURL, "")
 
-			if redirectURL == "login.html" || redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") || strings.Contains(redirectURL, "microsoftonline")  {
+			if redirectURL == "login.html" || redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") || strings.Contains(redirectURL, "microsoftonline") {
 				redirectURL = ""
 			}
 			return redirectURL
@@ -251,7 +255,7 @@ func checkVuln(decodedContent string) string {
 		vuln = "OpenPhpMyAdmin"
 	}
 
-	//fmt.Printf("decodedContent (%s)\n", decodedContent)
+	
 	if regexp.MustCompile(`(?i)var user = "admin";`).MatchString(decodedContent) {
 
 		if !strings.Contains(decodedContent, `INCLUDE_USER_RESTRICTION`) { //negaticvo
@@ -1249,7 +1253,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		lastURL = resp.Request.URL.String()
 		StatusCode := resp.StatusCode
 		if debug {
-			fmt.Printf("statusssss: (%s)\n", StatusCode)
+			fmt.Printf("status: (%s)\n", StatusCode)
 		}
 		
 
@@ -1322,6 +1326,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		//#####################################
 		
 		// Si la respuesta tiene 700 o mas, ya estamos en el destino 
+		//fmt.Printf("decodedResponse (%s)\n", decodedResponse)
 		if responseLength < 700 {
 			redirectURL = getRedirect(decodedResponse)
 			if debug {

@@ -840,9 +840,6 @@ index.asp.bak
 index.bak
 index.BAK
 indexes.sql
-index.htm.bak
-index.html.bak
-index.html.old
 index.old
 index.php~
 index.php.bak
@@ -1124,17 +1121,6 @@ site.7z
 site_data_backup.rar
 site_data.rar
 site_files.rar
-sitemap_1.xml.gz
-sitemap1.xml.gz
-sitemap_2.xml.gz
-sitemap_3.xml.gz
-sitemap_4.xml.gz
-sitemap_5.xml.gz
-sitemap.gz
-sitemap.html.bak
-sitemap.txt.gz
-sitemap.xml.gz
-sitemap.xml.old
 site.old
 site.rar
 site.sql
@@ -1260,8 +1246,6 @@ test.txt.gz
 Test.zip
 themes.old
 theme.sql
-thumbs.db
-Thumbs.db
 tiny_mce.tar
 .tmp
 todo.sql

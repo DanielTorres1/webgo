@@ -27,11 +27,9 @@ adm.html
 .admin
 _admin/
 ~admin/
-admin
 admin/
 admin_
 admin_/
-Admin
 Admin/
 admin0/
 admin1/
