@@ -1051,6 +1051,9 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 			if strings.Contains(strings.ToLower(decodedResponse), "respondiendo") ||
 				strings.Contains(strings.ToLower(decodedResponse), "not responding") ||
+				strings.Contains(strings.ToLower(decodedResponse), "Please check your PHP configuration") ||
+				strings.Contains(strings.ToLower(decodedResponse), "please check PHP Configuration") ||
+				strings.Contains(strings.ToLower(decodedResponse), "is not readable") ||
 				strings.Contains(strings.ToLower(decodedResponse), "<h1>error</h1>") {
 				fmt.Println("ERROR: El servidor no está respondiendo")
 				continue
@@ -1121,8 +1124,8 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 				decodedResponse = string(body)
 			}
-
-			if !strings.Contains(decodedResponse, "pma_username") &&
+				
+			if strings.Contains(decodedResponse, "databases") &&
 				!strings.Contains(status, "403") &&
 				!strings.Contains(strings.ToLower(decodedResponse), "cannot log in to the mysql server") &&
 				!strings.Contains(strings.ToLower(decodedResponse), "can't connect to mysql server") &&
