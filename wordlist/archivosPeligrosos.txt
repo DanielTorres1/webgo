@@ -85,7 +85,6 @@ _assets
 awstats.conf
 .bash_history
 .bashrc
-~bin
 bin.bak
 book.bak
 _borders
@@ -163,7 +162,6 @@ _res
 _resources
 rest
 .rhosts
-~root
 _scriptlibrary
 _scripts
 setup.sql
@@ -180,6 +178,9 @@ vars.php
 wp-includes/vars.php
 swagger-ui
 swagger-ui.html
+db/phpminiadmin.php
+phpminiadmin.php
+dbadmin/phpminiadmin.php
 web.config
 telescope
 userlist.txt

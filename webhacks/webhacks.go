@@ -23,6 +23,8 @@ import (
 	"github.com/fatih/color"
 )
 
+var debug bool
+
 type WebHacks struct {
 	Debug       bool
 	Show404		bool
@@ -231,7 +233,7 @@ func getRedirect(decodedResponse string) string {
 }
 
 
-func checkVuln(decodedContent string) string {
+func checkVuln(decodedContent string,title string) string {
 	vuln := ""
 
 	// if regexp.MustCompile(`\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.16\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b`).MatchString(decodedContent) {
@@ -269,7 +271,9 @@ func checkVuln(decodedContent string) string {
 
 	// Si hay una coincidencia, imprimir el término que coincide
 	if len(match) > 0 {
-		fmt.Println("Término que coincide:", match[1])
+		//if debug {
+			fmt.Println("Término que coincide:", match[1])
+		//}
 		vuln = "MensajeError"
 	}
 
@@ -290,41 +294,23 @@ func checkVuln(decodedContent string) string {
 		vuln = "divulgacionInformacion"
 	}
 
-	decodedContentLower := strings.ToLower(decodedContent)
-	
-	pattern := `(?i)"password":|'password':|\&password=` //positivo
-	matched, _ := regexp.MatchString(pattern, decodedContent)
-	if matched {
-		if !strings.Contains(decodedContentLower, `"password":$`) && //negativo comilla doble
-			!strings.Contains(decodedContentLower, `password=**`) &&
-			!strings.Contains(decodedContentLower, `"password":"password`) &&
-			!strings.Contains(decodedContentLower, `"password=" + encodeuricomponent`) &&
-			!strings.Contains(decodedContentLower, `"password":"clave`)&&
-			!strings.Contains(decodedContentLower, `"password":"http`)&&
-			!strings.Contains(decodedContentLower, `"password":"Contrase`)&&
-			!strings.Contains(decodedContentLower, `"password":{required`) &&
-			!strings.Contains(decodedContentLower, `"passwords":{"password`) &&
-			!strings.Contains(decodedContentLower, `"password":{"enforced`) &&
-			!strings.Contains(decodedContentLower, `"password":{"enabled`) &&
-			!strings.Contains(decodedContentLower, `case "password":`)&&
-			!strings.Contains(decodedContentLower, `tac@cisco.com`)&&
-			!strings.Contains(decodedContentLower, `password=pass`)&&
-			!strings.Contains(decodedContentLower, `password=trial`)&&
-			!strings.Contains(decodedContentLower, `'password':{'enforced`) &&
-			!strings.Contains(decodedContentLower, `'password':{'enabled`) &&
-			!strings.Contains(decodedContentLower, `'passwords':{'password`) &&
-			!strings.Contains(decodedContentLower, `'password':{required`) &&
-			!strings.Contains(decodedContentLower, `'password':$`) && //negativo comilla simple
-			!strings.Contains(decodedContentLower, `'password':'password`) &&
-			!strings.Contains(decodedContentLower, `'password=' + encodeuricomponent`) &&
-			!strings.Contains(decodedContentLower, `'password':'clave`) &&
-			!strings.Contains(decodedContentLower, `'password':'http`)&&
-			!strings.Contains(decodedContentLower, `'password':"Contrase`){
-				
-			vuln = "PasswordDetected"
-		}
+	if regexp.MustCompile(`(?i)/var/www/html|/usr/local/apache2/htdocs/|C:/xampp/htdocs/|C:/wamp64/www/|/var/www/nginx-default|/usr/share/nginx/html`).MatchString(decodedContent) {
+		vuln = "FPD"
 	}
 
+	decodedContentLower := strings.ToLower(decodedContent)
+
+	patterns := `("password":\$|"password":"password|"password=" \+ encodeuricomponent|"password":"http|"password":"Contrase|"password":{required|"passwords":{"password|"password":{"enforced|"password":{"enabled|case "password":|tac@cisco.com|password=pass|password=trial|'password':{'enforced|'password':{'enabled|'passwords':{'password|'password':{required|'password':\$|'password':'password|'password=' \+ encodeuricomponent|'password':'clave|'password':'http|"password":{"laravelValidation")`
+	excludedTitles := `(?i)GPON|Cisco switch|Huawei|Terminal|TP-LINK`
+	mustMatchPattern := `(?i)"password":|'password':|\&password=`
+
+	contentMatch, _ := regexp.MatchString(patterns, decodedContentLower)
+	titleMatch, _ := regexp.MatchString(excludedTitles, title)
+	mustMatch, _ := regexp.MatchString(mustMatchPattern, decodedContentLower)
+
+	if !contentMatch && !titleMatch && mustMatch {
+		vuln = "PasswordDetected"
+	}
 	
 	return vuln
 }
@@ -1376,17 +1362,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	decodedResponse = regexp.MustCompile("admin@example.com").ReplaceAllString(decodedResponse, "")
 	decodedResponse = regexp.MustCompile("postmaster@example.com").ReplaceAllString(decodedResponse, "")
 
-	// ######## vulnerability ######
-	if decodedResponse != "" {
-		vulnerability = vulnerability + checkVuln(decodedResponse)
-	}
 	
-	
-	if debug {
-		fmt.Printf("vulnerability %s\n", vulnerability)
-	}
-	//###########
-
 	// ######## write log ######
 	// Open the file in append mode. If it doesn't exist, create it with permissions 0644
 	file, _ := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -1464,6 +1440,14 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			title = "Broadband device web server"
 		}
 	}
+
+	if regexp.MustCompile(`(?i)TP-LINK Technologies Co`).MatchString(decodedHeaderResponse) {
+		if title == "" {
+			title = "TP-LINK"
+		}
+	}
+
+	
 	
 	if regexp.MustCompile(`(?i)idrac`).MatchString(decodedHeaderResponse) {
 		title = "Dell iDRAC"
@@ -1823,8 +1807,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
-
-
 	if strings.Contains(decodedHeaderResponse, "GASOLINERA") {
         poweredBy += "|GASOLINERA"
     }
@@ -1968,8 +1950,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	if regexp.MustCompile(`(?i)name="password"`).MatchString(decodedHeaderResponse) {
 		poweredBy += "|login"
 	}
-
-
 	
 
     if regexp.MustCompile(`theme-taiga.css`).MatchString(decodedHeaderResponse) {
@@ -1982,13 +1962,23 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	if regexp.MustCompile(`Observium`).MatchString(decodedHeaderResponse) {
         poweredBy += "|networkMonitoring"
     }
+
 	
     if regexp.MustCompile(`Web Services`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Web Service"
+		server = "Dahua"
         if title == "" {
             title = "Web Service"
         }
     }
+
+	if regexp.MustCompile(`DHVideoWHMode`).MatchString(decodedHeaderResponse) {
+		server = "Dahua"
+        if title == "" {
+            title = "Web Service"
+        }
+    }
+	
 
 	if regexp.MustCompile(`logoTyco`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Tyco"
@@ -2036,6 +2026,17 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		fmt.Printf("poweredBy %s\n", poweredBy)
 	}
 	// ##################
+
+	// ######## vulnerability ######
+	if decodedResponse != "" {
+		vulnerability = vulnerability + checkVuln(decodedResponse,title)
+	}
+	
+	
+	if debug {
+		fmt.Printf("vulnerability %s\n", vulnerability)
+	}
+	//###########
 
 	data := map[string]string{
 		"title":         title,
@@ -2188,16 +2189,11 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				if current_status == 200 && bodyContent == "" {
 					current_status = 404
 				}
-
-				if strings.Contains(bodyContent, "Request Rejected") || strings.Contains(bodyContent, "ENTEL S.A."  )  {
-					current_status = 404
-				}
-				
 				
 				if (show404 && current_status == 404) || current_status != 404 {
 					vuln := ""
 					if  current_status == 200 {
-						vuln = checkVuln(bodyContent)
+						vuln = checkVuln(bodyContent,"")
 					}
 
 					errors := []string{
@@ -2207,10 +2203,19 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"This is the default text for a report",
 						"Unauthorized Request Blocked",
 						"Undefined offset",
+						"Syntax Error",
+						"currently unavailable",
+						"not found",
+						"Request Rejected",
+						"Contact support for additional information",
+						"ENTEL S.A.",
 					}
 					
+					
 					if containsAny(bodyContent, errors) {
-						current_status = 404
+						if vuln == "" { // si no contiene vulnerabilidad set 404
+							current_status = 404
+						}
 					}
 					
 					if vuln != "" {
