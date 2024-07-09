@@ -56,10 +56,10 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 
 	// Select a User-Agent randomly.
 	selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
-	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+	proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
 	// Create a custom HTTP transport that ignores SSL certificate errors
 	httpTransport := &http.Transport{
-		//Proxy: http.ProxyURL(proxyURL), //burpsuite
+		Proxy: http.ProxyURL(proxyURL), //burpsuite
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
@@ -178,29 +178,30 @@ func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, hea
 	
 
 // getRedirect extracts a redirect URL from the decoded HTML response.
-
 func getRedirect(decodedResponse string) string {
 	// Define patterns to search for redirect URLs
+	//fmt.Printf("decodedResponse (%s)\n", decodedResponse)
 	
 	patterns := []string{
-		`meta http-equiv=["']Refresh["'] content=["']0; ?URL= ?['"](.*?)['"]`,
-		`meta http-equiv=["']refresh["'] content=["']0; ?URL= ?['"](.*?)['"]`,
-		`meta http-equiv=["']Refresh["'] content=["']1; ?URL= ?['"](.*?)['"]`,
-		`meta http-equiv=["']refresh["'] content=["']1; ?URL= ?['"](.*?)['"]`,
-		`window.onload=function\(\) urlLine ?= ?['"](.*?)['"]`,
-		`window.location ?= ?['"](.*?)['"]`,
-		`location.href ?= ?['"](.*?)['"]`,
-		`window.location.href ?= ?['"](.*?)['"]`,
-		`window.location ?= ?['"](.*?)['"]`,
-		`top.location ?= ?['"](.*?)['"]`,
-		`location.replace\(['"](.*?)['"]\)`,
-		`location ?= ?['"](.*?)['"]`,
-		`jumpUrl ?= ?['"](.*?)['"]`,
-		`top.document.location.href ?= ?['"](.*?)['"]`,
-		`http-equiv=["']refresh["'] content=["']0.1;urlLine=['"](.*?)['"]`,
-		`parent.location ?= ?['"](.*?)['"]`,
-		`redirect_suffix ?= ?['"](.*?)['"]`,
-		`The document has moved ?<a href=['"](.*?)['"]`,
+		//     <meta http-equiv="refresh" content="0; URL=/scgi-bin/platform.cgi">
+		`(?i)content=["']0; URL=(.*?)['"]`,
+		`(?i)content=["']0; ?URL= ?['"](.*?)['"]`,
+		`(?i)content=["']1; ?URL= ?['"](.*?)['"]`,
+		`(?i)content=["']0.1;urlLine=['"](.*?)['"]`,
+		`(?i)window.onload=function\(\) urlLine ?= ?['"](.*?)['"]`,
+		`(?i)window.location ?= ?['"](.*?)['"]`,
+		`(?i)location.href ?= ?['"](.*?)['"]`,
+		`(?i)window.location.href ?= ?['"](.*?)['"]`,
+		`(?i)window.location ?= ?['"](.*?)['"]`,
+		`(?i)top.location ?= ?['"](.*?)['"]`,
+		`(?i)location.replace\(['"](.*?)['"]\)`,
+		`(?i)location ?= ?['"](.*?)['"]`,
+		`(?i)jumpUrl ?= ?['"](.*?)['"]`,
+		`(?i)top.document.location.href ?= ?['"](.*?)['"]`,
+		`(?i)parent.location ?= ?['"](.*?)['"]`,
+		`(?i)redirect_suffix ?= ?['"](.*?)['"]`,
+		`(?i)The document has moved ?<a href=['"](.*?)['"]`,
+		`(?i)Location: (.*?)\r?\n`,
 	}
 
 	// Iterate over patterns to find a match
@@ -301,7 +302,7 @@ func checkVuln(decodedContent string,title string) string {
 	decodedContentLower := strings.ToLower(decodedContent)
 
 	patterns := `("password":\$|"password":"password|"password=" \+ encodeuricomponent|"password":"http|"password":"Contrase|"password":{required|"passwords":{"password|"password":{"enforced|"password":{"enabled|case "password":|tac@cisco.com|password=pass|password=trial|'password':{'enforced|'password':{'enabled|'passwords':{'password|'password':{required|'password':\$|'password':'password|'password=' \+ encodeuricomponent|'password':'clave|'password':'http|"password":{"laravelValidation")`
-	excludedTitles := `(?i)GPON|Cisco switch|Huawei|Terminal|TP-LINK`
+	excludedTitles := `(?i)GPON|Cisco switch|Huawei|Terminal|TP-LINK|Zentyal Webmail`
 	mustMatchPattern := `(?i)"password":|'password':|\&password=`
 
 	contentMatch, _ := regexp.MatchString(patterns, decodedContentLower)
@@ -1209,68 +1210,30 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	redirectURL := "no"
 	var urlOriginal string
 	if rport == "443" || rport == "80" {
-	 	urlOriginal = proto + "://" + rhost + path
-	 } else {
+		urlOriginal = proto + "://" + rhost + path
+	} else {
 		urlOriginal = proto + "://" + rhost + ":" + rport + path
 	}
 	var finalURLRedirect string
 	var decodedResponse string
-	var resp *http.Response 
+	var resp *http.Response
 	var err error
 	status := ""
 	newDomain := ""
 	lastURL := ""
 	vulnerability := ""
 
+	origURL, _ := url.Parse(urlOriginal)
+	domainOriginal := origURL.Hostname()
+
 	for redirectURL != "" {
 		if debug {
 			fmt.Printf("urlOriginal (%s)\n", urlOriginal)
 			fmt.Printf("redirect_url en WHILE1 (%s)\n", redirectURL)
 		}
-		resp, err = wh.Dispatch(urlOriginal, "GET", "",  wh.Headers)
-		if err != nil {			
-			fmt.Printf("Error1 %s \n", err)
-			if strings.Contains(err.Error(), "server gave") {
-				// Handling protocol mismatch by switching protocol
-				urlOriginal = proto + "://" + rhost  + path
-				if debug {
-					fmt.Printf("Error: %v. Switching protocol to: %s", err, proto)
-				}
-				continue
-			}
-		}
+		resp, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)
 		lastURL = resp.Request.URL.String()
 		StatusCode := resp.StatusCode
-		if debug {
-			fmt.Printf("status: (%s)\n", StatusCode)
-		}
-		
-
-		if urlOriginal != lastURL {
-			poweredBy += "|301 Moved"
-		}
-
-		
-		// Check redirection from http to https
-		origURL, _ := url.Parse(urlOriginal)
-		finalURL, _ := url.Parse(lastURL)
-		if origURL.Scheme != finalURL.Scheme {
-			poweredBy += "|HTTPSredirect"
-		}
-	
-		// Check domain redirect
-		domainOriginal := origURL.Hostname()
-		domainFinal := finalURL.Hostname()
-		if debug {
-			fmt.Printf("domain_original %s domain_final %s\n", domainOriginal, domainFinal)
-			fmt.Printf("url_original %s last_url %s\n", urlOriginal, lastURL)
-		}
-
-		if domainOriginal != domainFinal {
-			poweredBy += "|301 Moved"
-			newDomain = domainFinal
-		}
-
 		var bodyReader io.ReadCloser
 		switch resp.Header.Get("Content-Encoding") {
 		case "gzip":
@@ -1295,29 +1258,81 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		resp.Body.Close()
 		decodedResponse = string(body)
 		decodedResponse = strings.ReplaceAll(decodedResponse, "'", "\"")
-		decodedResponse = strings.ReplaceAll(decodedResponse, "<noscript>.*?</noscript>", "")
+		//decodedResponse = strings.ReplaceAll(decodedResponse, "<noscript>.*?</noscript>", "")
 		decodedResponse = regexp.MustCompile(".*\\/logout.*\\n").ReplaceAllString(decodedResponse, "")
 		decodedResponse = regexp.MustCompile(".*sclogin.html*").ReplaceAllString(decodedResponse, "")
 		decodedResponse = regexp.MustCompile(".*index.html*").ReplaceAllString(decodedResponse, "")
 		decodedResponse = regexp.MustCompile(".*?console*").ReplaceAllString(decodedResponse, "")
-
-		
-		
-		//###### check redirect with content ##########
 		responseLength := len(decodedResponse)
-		if resp.StatusCode >= 300 && resp.StatusCode <= 399 && responseLength > 700 {
-			vulnerability = "Redirect with content|"
-			//break
+
+		if debug {
+			fmt.Printf("statusss: (%d)\n", StatusCode)
+			fmt.Printf("responseLength: (%d)\n", responseLength)
+			//fmt.Printf("decodedResponse: (%s)\n", decodedResponse)
 		}
+
+		// if err != nil {
+		// 	fmt.Printf("Error1 %s \n", err)
+
+			if strings.Contains(decodedResponse, "server gave HTTPS response to HTTP client") || strings.Contains(decodedResponse, "speaking plain HTTP to an SSL-enabled server port") {
+				// Handling protocol mismatch by switching protocol
+				fmt.Printf("Handling protocol mismatch by switching protocol HTTP to HTTPS\n")
+				urlOriginal = "https://" + rhost + ":" + rport + path
+				continue
+			}
+
+			if strings.Contains(decodedResponse, "server gave HTTP response to HTTPS client") {
+				// Handling protocol mismatch by switching protocol
+				fmt.Printf("Handling protocol mismatch by switching protocol HTTPS to HTTP\n")
+				urlOriginal = "http://" + rhost + ":" + rport + path
+				continue
+			}
+		//}
+
+
+		if urlOriginal != lastURL {
+			poweredBy += "|301 Moved"
+		}
+
+		//###### check redirect with content ##########
+		if StatusCode > 300 && StatusCode <400 {
+			if responseLength > 700 && !strings.Contains(decodedResponse, "noscript") {
+				vulnerability = "redirectContent"
+				//break
+			}
+		}
+		
 		if debug {
 			fmt.Printf("responseLength %d \n", responseLength)
 		}
 		//#####################################
-		
-		// Si la respuesta tiene 700 o mas, ya estamos en el destino 
+
+		// Check redirection from http to https
+		origURL, _ := url.Parse(urlOriginal)
+		finalURL, _ := url.Parse(lastURL)
+		if origURL.Scheme != finalURL.Scheme {
+			poweredBy += "|HTTPSredirect"
+		}
+
+		// Check domain redirect
+		//domainOriginal = origURL.Hostname()
+		domainFinal := finalURL.Hostname()
+		if debug {
+			fmt.Printf("domainOriginal %s domain_final %s\n", domainOriginal, domainFinal)
+			fmt.Printf("urlOriginal %s last_url %s\n", urlOriginal, lastURL)
+		}
+
+		if domainOriginal != domainFinal {
+			poweredBy += "|301 Moved"
+			newDomain = domainFinal
+		}
+
+		// Si la respuesta tiene 700 o mas, ya estamos en el destino
 		//fmt.Printf("decodedResponse (%s)\n", decodedResponse)
 		if responseLength < 700 {
-			redirectURL = getRedirect(decodedResponse)
+			responseHeaders := headerToString(resp.Header)
+			decodedHeaderResponse := responseHeaders + "\n" + decodedResponse
+			redirectURL = getRedirect(decodedHeaderResponse)
 			if debug {
 				fmt.Printf("redirect_url (%s)\n", redirectURL)
 			}
@@ -1329,7 +1344,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			// redirect is URL complete
 			if strings.Contains(redirectURL, "http") {
 				finalURLRedirect = redirectURL
-			} else { // redirect is only url part 
+			} else { // redirect is only url part
 				firstChar := redirectURL[:1]
 				if debug {
 					fmt.Printf("firstChar %s\n", firstChar)
@@ -1348,7 +1363,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		if debug {
 			fmt.Printf("urlOriginal en WHILE2 %s\n", urlOriginal)
 		}
-		
 	} //end for
 
 
@@ -1446,6 +1460,13 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			title = "TP-LINK"
 		}
 	}
+
+	if regexp.MustCompile(`(?i)frmRedirectToTop`).MatchString(decodedHeaderResponse) {
+		if title == "" {
+			title = "Router cisco"
+		}
+	}
+
 
 	
 	
