@@ -1124,6 +1124,76 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 	}//phpmyadmin
 
+
+	if module == "phpPgadmin" {
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+
+			resp, err := wh.Dispatch(url + "redirect.php?subject=server&server=postgres%3A5432%3Aallow&", "GET", "", headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+				continue
+			}
+
+			decodedResponse := string(body)
+			if strings.Contains(strings.ToLower(decodedResponse), "You are logged in as user") || strings.Contains(strings.ToLower(decodedResponse), "toplink_logout") {
+				fmt.Printf("[phpPgadmin] %s (Sistema sin password)\n", url)
+				continue
+			}
+			//<input id="loginPassword" type="password" name="loginPassword_b300d5512fec862b7adb71f2c9bbba3c"
+			loginPasswordRegex := regexp.MustCompile(`<input id="loginPassword" type="password" name="(.*?)"`)
+			matches := loginPasswordRegex.FindStringSubmatch(decodedResponse)
+			var loginPassword string
+			if len(matches) >= 2 {
+				loginPassword = matches[1]
+			}
+
+		
+			hashData := map[string]string{
+				"loginUsername": user,
+				loginPassword : password,
+				"loginSubmit":    "Login",
+				"subject":       "server",
+				"server":       "postgres:5432:allow",
+				"loginServer":       "postgres:5432:allow",
+			}
+
+			postData := ConvertHash(hashData)
+			headers.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			resp, err = wh.Dispatch(url+"redirect.php", "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+				continue
+			}
+			defer resp.Body.Close()
+
+			status := resp.Status
+			body, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+				continue
+			}
+
+			decodedResponse = string(body)
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+
+			if strings.Contains(strings.ToLower(decodedResponse), "You are logged in as user") || strings.Contains(strings.ToLower(decodedResponse), "toplink_logout") {
+				fmt.Printf("Password encontrado: [phpPgadmin] %s Usuario:%s Password:%s\n", url, user, password)
+				break
+			}
+		}
+
+	}//phpPgadmin
+
 	if module == "joomla" { //3.10
 		resp, err := wh.Dispatch(url + "administrator/index.php", "GET", "", headers)
 		if err != nil {
@@ -1218,6 +1288,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	var decodedResponse string
 	var resp *http.Response
 	var err error
+	var StatusCode int
 	status := ""
 	newDomain := ""
 	lastURL := ""
@@ -1233,7 +1304,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 		resp, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)
 		lastURL = resp.Request.URL.String()
-		StatusCode := resp.StatusCode
+		StatusCode = resp.StatusCode
 		var bodyReader io.ReadCloser
 		switch resp.Header.Get("Content-Encoding") {
 		case "gzip":
@@ -1365,6 +1436,10 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	} //end for
 
+
+	if StatusCode == 404 {
+        poweredBy += "|404 not found"
+    }
 
 	responseHeaders := headerToString(resp.Header)
 	decodedHeaderResponse := responseHeaders + "\n" + decodedResponse
@@ -1629,6 +1704,14 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		server = "Ubiquiti"
 	}
 
+	if regexp.MustCompile(`(?i)This version of oviyam`).MatchString(decodedHeaderResponse) {
+		title = "oviyam"
+		poweredBy += "|Medical"
+	}
+
+
+	
+
 
 	
 
@@ -1790,7 +1873,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		h1 := strings.ReplaceAll(h1Match[1], "\n", " ")
 		h1 = strings.TrimSpace(h1)
 		h1 = onlyAscii(h1)
-		if len(h1) > 2 {
+		if len(h1) > 2 && len(h1) < 100 {
 			poweredBy += "| H1=" + h1
 		}
 	}
@@ -1801,7 +1884,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		h2 := strings.ReplaceAll(h2Match[1], "\n", " ")
 		h2 = strings.TrimSpace(h2)
 		h2 = onlyAscii(h2)
-		if len(h2) > 2 {
+		if len(h2) > 2 && len(h2) < 100 {
 			poweredBy += "| H2=" + h2
 		}
 	}
@@ -1812,7 +1895,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		h3 := strings.ReplaceAll(h3Match[1], "\n", " ")
 		h3 = strings.TrimSpace(h3)
 		h3 = onlyAscii(h3)
-		if len(h3) > 2 {
+		if len(h3) > 2 && len(h3) < 100 {
 			poweredBy += "| H3=" + h3
 		}
 	}
@@ -1823,7 +1906,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		h4 := strings.ReplaceAll(h4Match[1], "\n", " ")
 		h4 = strings.TrimSpace(h4)
 		h4 = onlyAscii(h4)
-		if len(h4) > 2 {
+		if len(h4) > 2 && len(h4) < 100 {
 			poweredBy += "| H4=" + h4
 		}
 	}
@@ -1832,9 +1915,15 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|GASOLINERA"
     }
 
+
+	
+
 	if strings.Contains(decodedHeaderResponse, "<app-root>") {
         poweredBy += "|Angular"
     }
+
+	
+	
 
 	if regexp.MustCompile(`Microsoftsharepointteamservices`).MatchString(decodedHeaderResponse) {
 		server = "Microsoft SharePoint"
@@ -1848,6 +1937,19 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			poweredBy += "|SharePoint"
 		}
 	}
+
+	if regexp.MustCompile(`Liferay-Portal`).MatchString(decodedHeaderResponse) {
+		re := regexp.MustCompile(`Liferay-Portal: (.*?)\r?\n`)
+		matches := re.FindStringSubmatch(decodedHeaderResponse)
+
+		if len(matches) > 1 {
+			version := matches[1]
+			poweredBy += "|" + version
+		} else {
+			poweredBy += "|Liferay-Portal"
+		}
+	}
+
 
 	if strings.Contains(decodedHeaderResponse, "/assets/erpnext") {
         poweredBy += "|erpnext"
@@ -1882,6 +1984,17 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	if regexp.MustCompile(`XSRF-TOKEN|_session`).MatchString(decodedHeaderResponse) {
 		poweredBy += "|api-endpoint"
 	}
+
+	if regexp.MustCompile(`wp-content/themes/`).MatchString(decodedHeaderResponse) {
+		poweredBy += "|wordpress"
+	}
+
+	if regexp.MustCompile(`Chamilo LMS stylesheet `).MatchString(decodedHeaderResponse) {
+		poweredBy += "|Chamilo"
+	}
+
+	
+	
 	
 	//fmt.Printf("decodedHeaderResponse: %s\n", decodedHeaderResponse)
     if regexp.MustCompile(`FortiGate|FortiGate for inclusion in the httpsd debug log`).MatchString(decodedHeaderResponse) {
@@ -2034,12 +2147,12 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	}
 
 
-	if regexp.MustCompile(`(?i)Huawei Technologies Co|HG8145V5|EG8145X6`).MatchString(decodedHeaderResponse) {
+	if regexp.MustCompile(`(?i)Huawei Technologies Co|HG8145V5|EG8145X6|WA8021V5`).MatchString(decodedHeaderResponse) {
 		
-		title, server = "optical network terminal (ONT)", "Huawei"
+		title, server = "Huawei", "Huawei"
 		productNameRegex := regexp.MustCompile(`(?i)var ProductName = "(.*?)"`)
 		if matches := productNameRegex.FindStringSubmatch(decodedHeaderResponse); len(matches) > 1 {
-			poweredBy += "|" + matches[1]
+			title =  matches[1]
 		}
 	}
 
@@ -2224,6 +2337,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"This is the default text for a report",
 						"Unauthorized Request Blocked",
 						"Undefined offset",
+						"Service not found",
 						"Syntax Error",
 						"currently unavailable",
 						"not found",
@@ -2234,7 +2348,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					
 					
 					if containsAny(bodyContent, errors) {
-						if vuln == "" { // si no contiene vulnerabilidad set 404
+						if vuln == "" { // si no contiene error set 404
 							current_status = 404
 						}
 					}
