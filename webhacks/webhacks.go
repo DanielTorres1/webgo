@@ -295,7 +295,7 @@ func checkVuln(decodedContent string,title string) string {
 		vuln = "divulgacionInformacion"
 	}
 
-	if regexp.MustCompile(`(?i)/var/www/html|/usr/local/apache2/htdocs/|C:/xampp/htdocs/|C:/wamp64/www/|/var/www/nginx-default|/usr/share/nginx/html`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)/var/www/html|/usr/local/apache2/htdocs/|C:/xampp/htdocs/|C:/wamp64/www/|/var/www/nginx-default|/usr/share/nginx/html`).MatchString(decodedContent) && !strings.Contains(title, "Default Page") {
 		vuln = "FPD"
 	}
 
