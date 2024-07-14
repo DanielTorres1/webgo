@@ -183,11 +183,12 @@ func getRedirect(decodedResponse string) string {
 	//fmt.Printf("decodedResponse (%s)\n", decodedResponse)
 	
 	patterns := []string{
-		//     <meta http-equiv="refresh" content="0; URL=/scgi-bin/platform.cgi">
 		`(?i)content=["']0; URL=(.*?)['"]`,
 		`(?i)content=["']0; ?URL= ?['"](.*?)['"]`,
 		`(?i)content=["']1; ?URL= ?['"](.*?)['"]`,
 		`(?i)content=["']0.1;urlLine=['"](.*?)['"]`,
+		`(?i)content=["']0; ?URL=(.*?)["']`,
+		`(?i)content=["']1; ?URL=(.*?)["']`,
 		`(?i)window.onload=function\(\) urlLine ?= ?['"](.*?)['"]`,
 		`(?i)window.location ?= ?['"](.*?)['"]`,
 		`(?i)location.href ?= ?['"](.*?)['"]`,
@@ -295,7 +296,7 @@ func checkVuln(decodedContent string,title string) string {
 		vuln = "divulgacionInformacion"
 	}
 
-	if regexp.MustCompile(`(?i)/var/www/html|/usr/local/apache2/htdocs/|C:/xampp/htdocs/|C:/wamp64/www/|/var/www/nginx-default|/usr/share/nginx/html`).MatchString(decodedContent) && !strings.Contains(title, "Default Page") {
+	if regexp.MustCompile(`(?i)/var/www/html|/usr/local/apache2/htdocs/|C:/xampp/htdocs/|C:/wamp64/www/|/var/www/nginx-default|/usr/share/nginx/html`).MatchString(decodedContent) && !strings.Contains(decodedContent, "Default Page") {
 		vuln = "FPD"
 	}
 
@@ -2123,6 +2124,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|Tyco"
     }
 
+	if regexp.MustCompile(`workspaceSkin=`).MatchString(decodedHeaderResponse) {
+        poweredBy += "|processmaker"
+    }
+	
+
     if regexp.MustCompile(`login__block__header`).MatchString(decodedHeaderResponse) {
         poweredBy += "|login"
         if title == "" {
@@ -2348,6 +2354,10 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"not found",
 						"Request Rejected",
 						"Error de servidor",
+						"no endpoint to handle",
+						"Object not found",
+						"An attack was detected",
+						"Page not found",
 						"Contact support for additional information",
 						"ENTEL S.A.",
 					}
