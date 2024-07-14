@@ -103,6 +103,8 @@ func main() {
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/api.txt", "")
 	case "admin":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/admin.txt", "")
+	case "adminCMS":
+		webHacks.Dirbuster("/usr/share/webhacks/wordlist/adminCMS.txt", "")
 	case "archivosPeligrosos":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/archivosPeligrosos.txt", "")
 	case "sap":
