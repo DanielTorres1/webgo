@@ -63,6 +63,8 @@ admin8/
 admin9/
 admin_area/
 adminarea/
+mbpgadmin/
+mbpgadmin2/
 admin_area/admin.asp
 adminarea/admin.asp
 admin_area/admin.html
@@ -251,7 +253,6 @@ cuentas/
 customer_login/
 database_administration/
 Database_Administration/
-db/
 db-admin/
 db_admin/
 dbadmin/

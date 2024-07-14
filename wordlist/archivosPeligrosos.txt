@@ -78,6 +78,7 @@ swagger
 swagger.json
 swagger/index.html
 swagger/swagger-ui.html
+application/configs/application.ini
 password/reset
 access.1
 apis.json

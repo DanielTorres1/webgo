@@ -1922,6 +1922,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|Angular"
     }
 
+	if strings.Contains(decodedHeaderResponse, "nucleo/vendor/js/") || strings.Contains(decodedHeaderResponse, "nucleo/src/css") {
+		poweredBy += "|Nucleo"
+	}
+	
+
 	
 	
 
@@ -2342,6 +2347,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"currently unavailable",
 						"not found",
 						"Request Rejected",
+						"Error de servidor",
 						"Contact support for additional information",
 						"ENTEL S.A.",
 					}

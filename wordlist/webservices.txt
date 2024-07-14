@@ -125,6 +125,7 @@ wAdministrador/
 global.asa
 global.asax
 wAdquisicion/
+WsTriskel/
 wCliente/
 wContabilidad/
 wGenerico/
