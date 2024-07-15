@@ -59,7 +59,7 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
 	// Create a custom HTTP transport that ignores SSL certificate errors
 	httpTransport := &http.Transport{
-		//Proxy: http.ProxyURL(proxyURL), //burpsuite
+	//	Proxy: http.ProxyURL(proxyURL), //burpsuite
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
@@ -1027,7 +1027,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			decodedResponse := string(body)
 			if strings.Contains(strings.ToLower(decodedResponse), "navigation.php") || strings.Contains(strings.ToLower(decodedResponse), "logout.php") {
 				fmt.Printf("[phpmyadmin] %s (Sistema sin password)\n", url)
-				continue
+				break
 			}
 
 			tokenRegex := regexp.MustCompile(`name="token" value="(.*?)"`)
@@ -1196,7 +1196,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 	}//phpPgadmin
 
 	if module == "joomla" { //3.10
-		resp, err := wh.Dispatch(url + "administrator/index.php", "GET", "", headers)
+		resp, err := wh.Dispatch(url + "index.php", "GET", "", headers)
 		if err != nil {
 			fmt.Printf("Request failed: %v", err)
 		}
@@ -1206,13 +1206,25 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 		decodedResponse := string(body)		
 
 		var csrf string
+		//  <input type="hidden" name="a9ef04c13c3150f6055aeb52a58b6e15" value="1" />
 		tokenRegex := regexp.MustCompile(`"csrf.token":"(.*?)"`)
 		matches := tokenRegex.FindStringSubmatch(decodedResponse)
 		if len(matches) >= 2 {
 			csrf = matches[1]
 		}
 
+		if csrf == "" {
+			tokenRegex2 := regexp.MustCompile(`type="hidden" name="([a-f0-9]+)"`)
+			matches2 := tokenRegex2.FindStringSubmatch(decodedResponse)
+			
+			if len(matches2) >= 2 {
+				csrf = matches2[1]
+			}
+		}
+
+	
 		var ret string
+		//	        <input type="hidden" name="return" value="aW5kZXgucGhw"/> 
 		tokenRegex = regexp.MustCompile(`name="return" value="(.*?)"`)
 		matches = tokenRegex.FindStringSubmatch(decodedResponse)
 		if len(matches) >= 2 {
@@ -1222,7 +1234,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 		for _, password := range passwordsList {
 			password = strings.TrimSpace(password)
 			hashData := map[string]string{
-				 csrf:   "1",
+				csrf:   "1",
 				"return":ret,
 				"task": "login",
 				"option": "com_login",
@@ -1235,9 +1247,9 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 			headers.Set("Upgrade-Insecure-Requests", "1")
 			headers.Set("Origin", url)
-			headers.Set("Referer", url + "/administrator/")
+			headers.Set("Referer", url )
 			headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-			resp, err := wh.Dispatch(url + "administrator/index.php", "POST", postData, headers)
+			resp, err := wh.Dispatch(url + "index.php", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
