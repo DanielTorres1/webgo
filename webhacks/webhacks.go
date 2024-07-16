@@ -2368,6 +2368,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"Error de servidor",
 						"no endpoint to handle",
 						"Object not found",
+						"page_404",
 						"An attack was detected",
 						"Page not found",
 						"Contact support for additional information",
