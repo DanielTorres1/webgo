@@ -75,6 +75,7 @@ searchreplacedb2.php
 reset
 .subversion
 swagger
+.aws/credentials
 swagger.json
 swagger/index.html
 swagger/swagger-ui.html
