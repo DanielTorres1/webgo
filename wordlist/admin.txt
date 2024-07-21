@@ -273,7 +273,6 @@ irc-macadmin/
 jenkins/
 jmx-console/
 jmx-console/HtmlAdaptor
-LiveUser_Admin/
 logging
 login/
 Login
@@ -291,7 +290,6 @@ login-us/
 logon
 logos
 logo_sysadmin/
-Lotus_Domino_Admin/
 macadmin/
 maintenance/
 manager/
@@ -336,14 +334,6 @@ pages/admin/admin-login.php
 painel/
 panel/
 panel-administracion/
-panel-administracion/admin.asp
-panel-administracion/admin.html
-panel-administracion/admin.php
-panel-administracion/index.asp
-panel-administracion/index.html
-panel-administracion/login.asp
-panel-administracion/login.html
-panel-administracion/login.php
 pgadmin/
 phmyadmin/
 phpadmin/
@@ -391,10 +381,6 @@ Server.php
 showlogin/
 simpleLogin/
 siteadmin/
-siteadmin/index.asp
-siteadmin/login.asp
-siteadmin/login.html
-siteadmin/login.php
 smblogin/
 sql-admin/
 sqlite/
@@ -456,7 +442,4 @@ webmaster/
 websql/
 websvn/
 wizmysqladmin/
-wp-admin/
-wp-login/
-wp-login.php
 xlogin/

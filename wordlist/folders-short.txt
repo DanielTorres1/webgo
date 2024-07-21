@@ -25,3 +25,4 @@ sql
 .github
 .svn
 storage/logs
+userfiles

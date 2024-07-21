@@ -238,6 +238,7 @@ func getRedirect(decodedResponse string) string {
 func checkVuln(decodedContent string,title string) string {
 	vuln := ""
 
+	//fmt.Printf("decodedContent %s\n", decodedContent)
 	// if regexp.MustCompile(`\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.16\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b`).MatchString(decodedContent) {
 	// 	vuln = "IPinterna"
 	// }
@@ -296,14 +297,17 @@ func checkVuln(decodedContent string,title string) string {
 		vuln = "divulgacionInformacion"
 	}
 
-	if regexp.MustCompile(`(?i)/var/www/html|/usr/local/apache2/htdocs/|C:/xampp/htdocs/|C:/wamp64/www/|/var/www/nginx-default|/usr/share/nginx/html`).MatchString(decodedContent) && !strings.Contains(decodedContent, "Default Page") {
+	if regexp.MustCompile(`(?i)/var/www/html|/usr/local/apache2/htdocs/|C:/xampp/htdocs/|C:/wamp64/www/|/var/www/nginx-default|/usr/share/nginx/html`).MatchString(decodedContent) &&
+		!strings.Contains(decodedContent, "Default Page") &&
+		!strings.Contains(decodedContent, "Server Manager") &&
+		!strings.Contains(decodedContent, "TEST PAGE") {
 		vuln = "FPD"
 	}
 
 	decodedContentLower := strings.ToLower(decodedContent)
 
-	patterns := `("password":\$|"password":"password|"password=" \+ encodeuricomponent|"password":"http|"password":"Contrase|"password":{required|"passwords":{"password|"password":{"enforced|"password":{"enabled|case "password":|tac@cisco.com|password=pass|password=trial|'password':{'enforced|'password':{'enabled|'passwords':{'password|'password':{required|'password':\$|'password':'password|'password=' \+ encodeuricomponent|'password':'clave|'password':'http|"password":{"laravelValidation")`
-	excludedTitles := `(?i)GPON|Cisco switch|Huawei|Terminal|TP-LINK|Zentyal Webmail`
+	patterns := `(?i)("password":\$|"password":"password|"password=" \+ encodeuricomponent|"password":"http|"password":"Contrase|"password":{required|"passwords":{"password|"password":{"enforced|"password":{"enabled|case "password":|tac@cisco.com|password=pass|password=trial|'password':{'enforced|'password':{'enabled|'passwords':{'password|'password':{required|'password':\$|'password':'password|'password=' \+ encodeuricomponent|'password':'clave|'password':'http|"password":{"laravelValidation")|'&password=' + passHASH`
+	excludedTitles := `(?i)GPON|Cisco switch|Huawei|Terminal|TP-LINK|Zentyal Webmail|Serv-U|dlink`
 	mustMatchPattern := `(?i)"password":|'password':|\&password=`
 
 	contentMatch, _ := regexp.MatchString(patterns, decodedContentLower)
@@ -1935,6 +1939,12 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|Angular"
     }
 
+	if strings.Contains(decodedHeaderResponse, "Please ensure that the other VPN client pages ") {
+        poweredBy += "|VPN"
+    }
+
+	
+
 	if strings.Contains(decodedHeaderResponse, "nucleo/vendor/js/") || strings.Contains(decodedHeaderResponse, "nucleo/src/css") {
 		poweredBy += "|Nucleo"
 	}
@@ -2151,7 +2161,26 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	
 	if regexp.MustCompile(`(?i)waiting\.\.\.|ui_huawei_fw_ver|CertInstallFF`).MatchString(decodedHeaderResponse) {
 		server = "Huawei"
+		if title == "</title" {
+			title = "Huawei"
+		}
 	}
+
+	if regexp.MustCompile(`(?i)Serv-U`).MatchString(decodedHeaderResponse) {
+		title = "Serv-U"
+	}
+
+	if regexp.MustCompile(`(?i)dlink.com/default.aspx`).MatchString(decodedHeaderResponse) {
+		if title == "</title" {
+			title = "dlink"
+		}
+	}
+
+
+
+	
+
+	
 
 	
 	if regexp.MustCompile(`(?i)TP-Link Corporation Limited`).MatchString(decodedHeaderResponse) {
@@ -2372,6 +2401,10 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"An attack was detected",
 						"Page not found",
 						"Contact support for additional information",
+						"Invalid token supplied",
+						"No existe el archivo inc.php",
+						"content=\"WordPress",
+						"error\":\"Error en el metodo",
 						"ENTEL S.A.",
 					}
 					
