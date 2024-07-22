@@ -1029,7 +1029,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			}
 
 			decodedResponse := string(body)
-			if strings.Contains(strings.ToLower(decodedResponse), "navigation.php") || strings.Contains(strings.ToLower(decodedResponse), "logout.php") {
+			if strings.Contains(strings.ToLower(decodedResponse), "navigation.php") || strings.Contains(strings.ToLower(decodedResponse), "logout.php") || strings.Contains(strings.ToLower(decodedResponse), "information_schema") {
 				fmt.Printf("[phpmyadmin] %s (Sistema sin password)\n", url)
 				break
 			}
@@ -1116,12 +1116,8 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 				decodedResponse = string(body)
 			}
-				
-			if strings.Contains(decodedResponse, "databases") &&
-				!strings.Contains(status, "403") &&
-				!strings.Contains(strings.ToLower(decodedResponse), "cannot log in to the mysql server") &&
-				!strings.Contains(strings.ToLower(decodedResponse), "can't connect to mysql server") &&
-				!strings.Contains(strings.ToLower(decodedResponse), "1045 el servidor mysql") {
+			
+			if strings.Contains(strings.ToLower(decodedResponse), "navigation.php") || strings.Contains(strings.ToLower(decodedResponse), "logout.php") || strings.Contains(strings.ToLower(decodedResponse), "information_schema") {
 				fmt.Printf("Password encontrado: [phpmyadmin] %s Usuario:%s Password:%s\n", url, user, password)
 				break
 			}
