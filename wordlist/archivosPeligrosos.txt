@@ -63,11 +63,15 @@ passWD.txt
 Passwd.txt
 password/email
 passwordlist.txt
+admin.txt
 passwordList.txt
 Passwordlist.txt
 password.log
 password.mdb
+database.yml
+db.conf
 .passwords
+configgold.json
 passwords.mdb
 password.sqlite
 passwords.sqlite

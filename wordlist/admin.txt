@@ -266,6 +266,7 @@ formslogin/
 globes_admin/
 hpwebjetadmin/
 Indy_admin/
+startPage
 ingreso/
 instadmin/
 invoker/JMXInvokerServlet

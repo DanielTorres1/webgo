@@ -14,7 +14,11 @@ pswa
 rdweb
 sav
 QRImagen
+geoserver
+wgis-geos
 copy
+cacti
+xwiki
 tmp
 txt
 RDWeb

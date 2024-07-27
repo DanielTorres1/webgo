@@ -59,7 +59,7 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
 	// Create a custom HTTP transport that ignores SSL certificate errors
 	httpTransport := &http.Transport{
-	//	Proxy: http.ProxyURL(proxyURL), //burpsuite
+		//Proxy: http.ProxyURL(proxyURL), //burpsuite
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
@@ -791,6 +791,41 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			}
 		}
 	}//ZKSOFTWARE
+
+	if module == "zabbix" {
+		for _, password := range passwordsList {
+			password = strings.TrimSpace(password)
+			hashData := map[string]string{
+				"name": user,
+				"password":  password,
+				"autologin":  "1",
+				"enter": "Sign+in",
+			}
+
+
+			postData := ConvertHash(hashData)
+
+			resp, err := wh.Dispatch(url+"index.php", "POST", postData, headers)
+			if err != nil {
+				fmt.Printf("Request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("Failed to read response body: %v", err)
+			}
+
+			decodedResponse := string(body)
+			status := resp.Status
+			fmt.Printf("[+] user:%s password:%s status:%s\n", user, password, status)
+
+			if strings.Contains(strings.ToLower(decodedResponse), "dashboard")  {
+				fmt.Printf("Password encontrado: [zabbix] %s Usuario:%s Password:%s\n", url, user, password)
+				break
+			}
+		}
+	}//zabbix
 
 	if module == "AMLC" {
 		for _, password := range passwordsList {
@@ -1652,6 +1687,14 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		server = "TL-WR840N"
 		title = "Router inalámbrico N 300Mbps WR840N"
 	} 
+
+	//fmt.Printf("decodedContent %s\n", decodedHeaderResponse)
+	if regexp.MustCompile(`(?i)redirect_suffix\s*=\s*"/cgi-bin/QTS\.cgi\?count="`).MatchString(decodedHeaderResponse) {
+		server = "QNAP Server"
+		title = "QNAP NAS"
+	}
+
+	
 	
 	if (regexp.MustCompile(`(?i)custom_logo/web_logo.png|baseProj/images/favicon.ico`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)webplugin.exe|BackUpBeginTimeChanged|playback_bottom_bar`).MatchString(decodedHeaderResponse)) && regexp.MustCompile(`(?i)WEB SERVICE`).MatchString(decodedHeaderResponse) {
 		server = "Dahua"
@@ -1962,6 +2005,19 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 	}
 
+	if regexp.MustCompile(`GeoServer`).MatchString(decodedHeaderResponse) {
+		//re := regexp.MustCompile(`GeoServer ([\d.]+)\r?\n`)
+		re := regexp.MustCompile(`GeoServer\s*([\d.]+)`)
+		matches := re.FindStringSubmatch(decodedHeaderResponse)
+
+		if len(matches) > 1 {
+			version := matches[1]
+			poweredBy += "|GeoServer v" + version
+		} else {
+			poweredBy += "|GeoServer"
+		}
+	}
+
 	if regexp.MustCompile(`Liferay-Portal`).MatchString(decodedHeaderResponse) {
 		re := regexp.MustCompile(`Liferay-Portal: (.*?)\r?\n`)
 		matches := re.FindStringSubmatch(decodedHeaderResponse)
@@ -2121,6 +2177,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|networkMonitoring"
     }
 
+
 	
     if regexp.MustCompile(`Web Services`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Web Service"
@@ -2140,6 +2197,10 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 	if regexp.MustCompile(`logoTyco`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Tyco"
+    }
+
+	if regexp.MustCompile(`X-Magento-Vary`).MatchString(decodedHeaderResponse) {
+        poweredBy += "|magento"
     }
 
 	if regexp.MustCompile(`workspaceSkin=`).MatchString(decodedHeaderResponse) {
