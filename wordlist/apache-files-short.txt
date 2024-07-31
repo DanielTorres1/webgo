@@ -1,0 +1,3 @@
+phpmailer/class.phpmailer.php
+includes/phpmailer/class.phpmailer.php
+vendor/phpmailer/phpmailer/class.phpmailer.php

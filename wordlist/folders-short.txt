@@ -16,7 +16,9 @@ sav
 QRImagen
 geoserver
 wgis-geos
+phpmailer
 copy
+sks
 cacti
 xwiki
 tmp
@@ -24,9 +26,6 @@ txt
 RDWeb
 respaldo
 sql
-.git
-.git2
-.github
 .svn
 storage/logs
 userfiles

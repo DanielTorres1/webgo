@@ -340,6 +340,7 @@ phmyadmin/
 phpadmin/
 phpadminmy/
 phpldapadmin/
+phpLDAPadmin/
 phpmanager/
 phpmemcachedadmin/
 phpmy-admin/

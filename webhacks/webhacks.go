@@ -1657,11 +1657,15 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		server = "Cisco Router"
 	} 
 
+	if regexp.MustCompile(`(?i)Panos.browser|GlobalProtect`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
+		server = "Palo Alto"
+	} 
+
 	if regexp.MustCompile(`(?i)<div id="flashContent">`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
 		server = "swfobject"
 	} 
 
-	
+
 	if regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
 		server = "Cisco Unified Communications"
 	} 
@@ -1693,6 +1697,15 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		server = "QNAP Server"
 		title = "QNAP NAS"
 	}
+
+	if regexp.MustCompile(`(?i)metabase.DEVICE`).MatchString(decodedHeaderResponse) {
+		title = "Metabase"
+	}
+
+	if regexp.MustCompile(`(?i)In order to access the ShareCenter`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
+		title = "D-Link NAS"
+	} 
+	
 
 	
 	
