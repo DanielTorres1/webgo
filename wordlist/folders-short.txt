@@ -22,6 +22,7 @@ sks
 cacti
 xwiki
 tmp
+web
 txt
 RDWeb
 respaldo
