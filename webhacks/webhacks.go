@@ -298,9 +298,9 @@ func checkVuln(decodedContent string,title string) string {
 	}
 
 	if regexp.MustCompile(`(?i)/var/www/html|/usr/local/apache2/htdocs/|C:/xampp/htdocs/|C:/wamp64/www/|/var/www/nginx-default|/usr/share/nginx/html`).MatchString(decodedContent) &&
-		!strings.Contains(decodedContent, "Default Page") &&
-		!strings.Contains(decodedContent, "Server Manager") &&
-		!strings.Contains(decodedContent, "TEST PAGE") {
+		!regexp.MustCompile(`(?i)Default Page`).MatchString(decodedContent) &&
+		!regexp.MustCompile(`(?i)Server Manager`).MatchString(decodedContent) &&
+		!regexp.MustCompile(`(?i)TEST PAGE`).MatchString(decodedContent) {
 		vuln = "FPD"
 	}
 
