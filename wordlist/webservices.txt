@@ -157,10 +157,13 @@ wInfoVentaP/
 wInventario/
 wPermiso/
 wProveedor/
+_vti_bin/
 wServicioV/
 wTesoreria/
 wVenta/
 wVtaServicio/
+api/
+webservice/
 WsFirmaDigitalProd/
 ws_intranet.asmx
 wsMaterials/

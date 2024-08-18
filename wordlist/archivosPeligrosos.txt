@@ -10,6 +10,7 @@ fckeditor/editor/filemanager/browser/default/browser.html
 fckeditor/editor/filemanager/browser/default/frmupload.html 
 fckeditor/editor/filemanager/upload/test.html
 fckeditor/fckconfig.js
+config.auth
 admin.php
 api/.env
 .env.local
