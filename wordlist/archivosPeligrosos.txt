@@ -12,6 +12,7 @@ fckeditor/editor/filemanager/upload/test.html
 fckeditor/fckconfig.js
 config.auth
 admin.php
+upload.php
 api/.env
 .env.local
 UserManagerAPI/appsettings.json
