@@ -12,7 +12,6 @@ fckeditor/editor/filemanager/upload/test.html
 fckeditor/fckconfig.js
 config.auth
 admin.php
-upload.php
 api/.env
 .env.local
 UserManagerAPI/appsettings.json
@@ -129,6 +128,7 @@ config.nsf
 config.server
 crossdomain
 .cvs
+.dev
 .cvsignore
 _data
 _database
@@ -156,6 +156,9 @@ global.bak
 group.bak
 .history
 .hta
+credentials.json
+secrets.yml
+settings.py
 .htaccess.bak
 htaccess.bak
 .htpasswd
