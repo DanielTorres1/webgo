@@ -16,6 +16,7 @@ README.html
 README
 Default.asp
 Default.aspx
+whoisonline.php
 readme
 Readme
 README.txt
