@@ -142,6 +142,7 @@ _db_backups
 db.sql
 db.sqlite
 _dev
+.bzr
 df_main.sql
 _dummy
 fckconfig.js
@@ -150,6 +151,9 @@ _flash
 .fontconfig
 .forward
 .git/HEAD
+.git
+.git2
+.github
 global.asa
 global.asax
 global.bak

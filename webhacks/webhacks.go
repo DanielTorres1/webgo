@@ -2440,11 +2440,27 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					}
 				}
 
+				if current_status == 302 || current_status == 301 {
+					
+					redirectURL30x := resp.Header.Get("Location")
+					if redirectURL30x == "login.php"{
+						current_status = 200
+					}
+				}
 				//fmt.Printf(" %s\n", bodyContent)
 				//time.Sleep(5 * time.Second)
-				if current_status == 200 && bodyContent == "" {
-					current_status = 404
+				// if current_status == 200 && bodyContent == "" {
+				// 	current_status = 404
+				// }
+
+				if current_status == 302  && len(bodyContent) > 200 {
+					
+					current_status = 200
+
+					
 				}
+
+				
 				
 				if (show404 && current_status == 404) || current_status != 404 {
 					vuln := ""
