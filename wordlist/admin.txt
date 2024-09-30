@@ -346,7 +346,9 @@ phpmemcachedadmin/
 phpmy-admin/
 phpmyadmin/
 phpMyAdmin/
+admin-real/
 phpmyadmin0/
+cacti
 phpmyadmin1/
 phpmyadmin2/
 phpMyAdmin-2/
@@ -354,6 +356,8 @@ phpMyAdmin2/
 phpmyadmin3/
 phpMyAdmin4/
 phpMyAdminBackup/
+geoserver
+wgis-geos
 phpmyadmin-old/
 phppgadmin/
 phppgadmin1/
@@ -372,6 +376,7 @@ postgresql/
 power_user/
 project-admins/
 pureadmin/
+geoserver/web/
 radmind/
 radmind-1/
 rcLogin/

@@ -1,5 +1,6 @@
 cc_tu.EXT
 d_usu.EXT
+cmd_realtime.EXT
 gestion_personas.EXT
 gestion_personas2.EXT
 registro_usuario_ejecuta.EXT

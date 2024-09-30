@@ -9,6 +9,7 @@ db
 correspondencia
 Produccion
 pswa
+geoserver/web
 web
 rdweb
 sav
@@ -19,8 +20,6 @@ mercadeo
 dividendos
 segip
 yapati
-geoserver
-wgis-geos
 phpmailer
 copy
 sks

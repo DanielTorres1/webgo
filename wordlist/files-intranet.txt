@@ -6,6 +6,7 @@
 05.EXT
 06.EXT
 0.EXT
+cmd_realtime.EXT
 0manager.EXT
 123.EXT
 1.EXT
