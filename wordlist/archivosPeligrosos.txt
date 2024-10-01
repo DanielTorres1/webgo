@@ -1,6 +1,6 @@
 admin/.env
 config
-/level/15/exec/
+level/15/exec/
 admin/env.js
 admin/fckeditor/editor/filemanager/browser/default/browser.html 
 admin/fckeditor/editor/filemanager/browser/default/frmupload.html 

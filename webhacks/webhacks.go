@@ -59,7 +59,7 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
 	// Create a custom HTTP transport that ignores SSL certificate errors
 	httpTransport := &http.Transport{
-		//Proxy: http.ProxyURL(proxyURL), //burpsuite
+	//	Proxy: http.ProxyURL(proxyURL), //burpsuite
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
@@ -2446,6 +2446,10 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					if redirectURL30x == "login.php"{
 						current_status = 200
 					}
+
+					if !strings.Contains(redirectURL30x, "#") {
+						current_status = 200
+					}	
 				}
 				//fmt.Printf(" %s\n", bodyContent)
 				//time.Sleep(5 * time.Second)
@@ -2453,12 +2457,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				// 	current_status = 404
 				// }
 
-				if current_status == 302  && len(bodyContent) > 200 {
-					
-					current_status = 200
-
-					
-				}
+			
 
 				
 				
