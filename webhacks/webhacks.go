@@ -59,7 +59,7 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
 	// Create a custom HTTP transport that ignores SSL certificate errors
 	httpTransport := &http.Transport{
-	//	Proxy: http.ProxyURL(proxyURL), //burpsuite
+		//Proxy: http.ProxyURL(proxyURL), //burpsuite
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
@@ -2447,7 +2447,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						current_status = 200
 					}
 
-					if !strings.Contains(redirectURL30x, "#") {
+					if !strings.Contains(redirectURL30x, "#") && !strings.Contains(redirectURL30x, "//") {
 						current_status = 200
 					}	
 				}
