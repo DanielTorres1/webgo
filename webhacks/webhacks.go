@@ -2094,7 +2094,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
         poweredBy += "|FortiGate"
         server = "FortiGate"
     }
-    if regexp.MustCompile(`yii-debug-toolbar`).MatchString(decodedHeaderResponse) {
+    if regexp.MustCompile(`yii-debug-toolbar|yii.css`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Yii"
     }
 	if regexp.MustCompile(`www.drupal.org`).MatchString(decodedHeaderResponse) {

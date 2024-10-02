@@ -348,9 +348,11 @@ phpmyadmin/
 phpMyAdmin/
 admin-real/
 phpmyadmin0/
-cacti
+cacti/
+index.php/cruge/ui/login
 phpmyadmin1/
 phpmyadmin2/
+console/App.html
 phpMyAdmin-2/
 phpMyAdmin2/
 phpmyadmin3/
