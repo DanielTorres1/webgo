@@ -2443,7 +2443,10 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				if current_status == 302 || current_status == 301 {
 					
 					redirectURL30x := resp.Header.Get("Location")
-					if redirectURL30x == "login.php"{
+					
+					//fmt.Printf("%s \n", redirectURL30x)
+					
+					if strings.Contains(strings.ToLower(redirectURL30x), "login") || strings.Contains(strings.ToLower(redirectURL30x), "default") {
 						current_status = 200
 					}
 

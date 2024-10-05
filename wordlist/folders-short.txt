@@ -12,7 +12,6 @@ Produccion
 pswa
 geoserver/web
 web
-rdweb
 sav
 cmg
 intranet
@@ -29,7 +28,6 @@ xwiki
 tmp
 web
 txt
-RDWeb
 respaldo
 sql
 .svn
