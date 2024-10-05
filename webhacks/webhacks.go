@@ -142,7 +142,25 @@ func ConvertHash(hashData map[string]string) string {
 }
 
 
-func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, headers http.Header) (*http.Response, error) {
+func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, headers http.Header) (*http.Response, string, error) {
+	// Keep track of the last URL
+	var lastURL string
+
+	// Create a custom client with a Transport that disables certificate verification
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, // Disable TLS certificate verification
+			},
+		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// Update lastURL each time there's a redirect
+			lastURL = req.URL.String()
+			// Allow following redirects
+			return nil
+		},
+	}
+
 	// Prepare the request
 	var req *http.Request
 	var err error
@@ -150,13 +168,13 @@ func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, hea
 	if method == "POST" {
 		req, err = http.NewRequest(method, urlLine, strings.NewReader(postData))
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	} else {
 		req, err = http.NewRequest(method, urlLine, nil)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 	}
 
@@ -168,13 +186,19 @@ func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, hea
 	}
 
 	// Send the request
-	resp, err := wh.Client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return resp, nil
+	// If there were no redirects, lastURL will be the original URL
+	if lastURL == "" {
+		lastURL = req.URL.String()
+	}
+
+	return resp, lastURL, nil
 }
+
 	
 
 // getRedirect extracts a redirect URL from the decoded HTML response.
@@ -407,7 +431,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			}
 
 			postData := ConvertHash(hashData)
-			resp, err := wh.Dispatch(url, "POST", postData, headers)
+			resp, _, err := wh.Dispatch(url, "POST", postData, headers)
 			
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
@@ -438,7 +462,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 		for _, password := range passwordsList {
 			password = strings.TrimSpace(password)
 
-			resp, err := wh.Dispatch(url, "GET", "", headers)
+			resp, _, err := wh.Dispatch(url, "GET", "", headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 			}
@@ -465,7 +489,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			}
 
 			postData := ConvertHash(hashData)
-			resp, err = wh.Dispatch(url, "POST", postData, headers)
+			resp, _, err = wh.Dispatch(url, "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 			}
@@ -481,7 +505,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			fmt.Printf("[+] user:%s password:%s lastURL:%s\n", user, password, lastURL)
 
 			if strings.Contains(lastURL, "start.ghtml") {
-				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlan_basic_t1.gch", "GET", "", headers)
+				resp, _, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlan_basic_t1.gch", "GET", "", headers)
 				if err != nil {
 					fmt.Printf("Request failed: %v", err)
 				}
@@ -526,7 +550,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 		for _, password := range passwordsList {
 			password = strings.TrimSpace(password)
 
-			resp, err := wh.Dispatch(url, "GET", "", headers)
+			resp, _, err := wh.Dispatch(url, "GET", "", headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 			}
@@ -553,7 +577,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			}
 
 			postData := ConvertHash(hashData)
-			resp, err = wh.Dispatch(url, "POST", postData, headers)
+			resp, _, err = wh.Dispatch(url, "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 			}
@@ -576,7 +600,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 				headers.Set("Origin", url)
 
-				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_essid1_t.gch", "GET", "", headers)
+				resp, _, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_essid1_t.gch", "GET", "", headers)
 				if err != nil {
 					fmt.Printf("Request failed: %v", err)
 				}
@@ -602,7 +626,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 					ESSID = essidMatches[1]
 				}
 
-				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_secrity1_t.gch", "GET", "", headers)
+				resp, _, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_secrity1_t.gch", "GET", "", headers)
 				if err != nil {
 					fmt.Printf("Request failed: %v", err)
 				}
@@ -642,7 +666,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 		for _, password := range passwordsList {
 			password = strings.TrimSpace(password)
 
-			resp, err := wh.Dispatch(url, "GET", "", headers)
+			resp, _, err := wh.Dispatch(url, "GET", "", headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 			}
@@ -673,7 +697,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			}
 
 			postData := ConvertHash(hashData)
-			resp, err = wh.Dispatch(url, "POST", postData, headers)
+			resp, _, err = wh.Dispatch(url, "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 			}
@@ -696,7 +720,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 				headers.Set("Origin", url)
 
-				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_essid1_t.gch", "GET", "", headers)
+				resp, _, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_essid1_t.gch", "GET", "", headers)
 				if err != nil {
 					fmt.Printf("Request failed: %v", err)
 				}
@@ -722,7 +746,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 					ESSID = essidMatches[1]
 				}
 
-				resp, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_secrity1_t.gch", "GET", "", headers)
+				resp, _, err = wh.Dispatch(url+"getpage.gch?pid=1002&nextpage=net_wlanm_secrity1_t.gch", "GET", "", headers)
 				if err != nil {
 					fmt.Printf("Request failed: %v", err)
 				}
@@ -764,7 +788,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 			postData := ConvertHash(hashData)
 
-			resp, err := wh.Dispatch(url+"csl/check", "POST", postData, headers)
+			resp, _, err := wh.Dispatch(url+"csl/check", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 			}
@@ -805,7 +829,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 			postData := ConvertHash(hashData)
 
-			resp, err := wh.Dispatch(url+"index.php", "POST", postData, headers)
+			resp, _, err := wh.Dispatch(url+"index.php", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 			}
@@ -841,7 +865,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			headers.Set("Content-Type", "application/x-www-form-urlencoded")
 			headers.Set("Cookie", "aj001sr001qwertycks=3730329decdf984212942a59de68a819")
 
-			resp, err := wh.Dispatch(url+"login", "POST", postData, headers)
+			resp, _, err := wh.Dispatch(url+"login", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 			}
@@ -858,7 +882,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 	}//AMLC
 
 	if module == "owa" {
-		_, err := wh.Dispatch(url , "GET", "", headers)
+		_, _, err := wh.Dispatch(url , "GET", "", headers)
 		if err != nil {
 			fmt.Printf("Request failed: %v", err)
 		}
@@ -882,7 +906,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			headers.Set("Sec-Fetch-User", "?1")
 			headers.Set("Origin", url)
 			headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-			resp, err := wh.Dispatch(url + "auth.owa", "POST", postData, headers)
+			resp, _, err := wh.Dispatch(url + "auth.owa", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -917,7 +941,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 	if module == "zimbra" {
 		for _, password := range passwordsList {
 			password = strings.TrimSpace(password)
-			resp, err := wh.Dispatch(url, "GET", "", headers)
+			resp, _, err := wh.Dispatch(url, "GET", "", headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -953,7 +977,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			headers.Set("Cookie", "ZM_TEST=true; ZM_LOGIN_CSRF="+loginCSRF)
 			headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 
-			resp, err = wh.Dispatch(url, "POST", postData, headers)
+			resp, _, err = wh.Dispatch(url, "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -999,7 +1023,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 			postData := ConvertHash(hashData)
 
-			resp, err := wh.Dispatch(url+"pentaho/j_spring_security_check", "POST", postData, headers)
+			resp, _, err := wh.Dispatch(url+"pentaho/j_spring_security_check", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -1028,7 +1052,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 			postData := ConvertHash(hashData)
 
-			resp, err := wh.Dispatch(url+"/public/checklogin.htm", "POST", postData, headers)
+			resp, _, err := wh.Dispatch(url+"/public/checklogin.htm", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -1050,7 +1074,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 		for _, password := range passwordsList {
 			password = strings.TrimSpace(password)
 
-			resp, err := wh.Dispatch(url, "GET", "", headers)
+			resp, _, err := wh.Dispatch(url, "GET", "", headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -1098,7 +1122,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			headers.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		GET:
-			resp, err = wh.Dispatch(url+"index.php", "POST", postData, headers)
+			resp, _, err = wh.Dispatch(url+"index.php", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -1136,7 +1160,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 					}
 				}
 
-				resp, err = wh.Dispatch(newURL, "GET", "", headers)
+				resp, _, err = wh.Dispatch(newURL, "GET", "", headers)
 				if err != nil {
 					fmt.Printf("Request failed: %v", err)
 					continue
@@ -1165,7 +1189,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 		for _, password := range passwordsList {
 			password = strings.TrimSpace(password)
 
-			resp, err := wh.Dispatch(url + "redirect.php?subject=server&server=postgres%3A5432%3Aallow&", "GET", "", headers)
+			resp, _, err := wh.Dispatch(url + "redirect.php?subject=server&server=postgres%3A5432%3Aallow&", "GET", "", headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -1204,7 +1228,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			postData := ConvertHash(hashData)
 			headers.Set("Content-Type", "application/x-www-form-urlencoded")
 
-			resp, err = wh.Dispatch(url+"redirect.php", "POST", postData, headers)
+			resp, _, err = wh.Dispatch(url+"redirect.php", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -1231,7 +1255,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 	}//phpPgadmin
 
 	if module == "joomla" { //3.10
-		resp, err := wh.Dispatch(url + "index.php", "GET", "", headers)
+		resp, _, err := wh.Dispatch(url + "index.php", "GET", "", headers)
 		if err != nil {
 			fmt.Printf("Request failed: %v", err)
 		}
@@ -1284,7 +1308,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 			headers.Set("Origin", url)
 			headers.Set("Referer", url )
 			headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-			resp, err := wh.Dispatch(url + "index.php", "POST", postData, headers)
+			resp, _, err := wh.Dispatch(url + "index.php", "POST", postData, headers)
 			if err != nil {
 				fmt.Printf("Request failed: %v", err)
 				continue
@@ -1350,7 +1374,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			fmt.Printf("urlOriginal (%s)\n", urlOriginal)
 			fmt.Printf("redirect_url en WHILE1 (%s)\n", redirectURL)
 		}
-		resp, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)
+		resp, _, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)
 		lastURL = resp.Request.URL.String()
 		StatusCode = resp.StatusCode
 		var bodyReader io.ReadCloser
@@ -2389,7 +2413,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 		go func() {
 			defer wg.Done()
 			for urlLine := range urlsChan {				
-				resp, err := wh.Dispatch(urlLine, "GET", "", headers)
+				resp, lastURL, err := wh.Dispatch(urlLine, "GET", "", headers)
 				if err != nil {
 					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
 					continue
@@ -2419,7 +2443,12 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				bodyBytes, _ := ioutil.ReadAll(bodyReader)
 				current_status := resp.StatusCode
 				bodyContent := string(bodyBytes)
-				//fmt.Printf("%s \n", bodyContent)
+
+				// Si redirige a suspendedpage.cgi
+				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") {
+					current_status = 404
+				}
+
 				//check if return a custom 404 error but 200 OK
 				if error404 != "" {
 					// Split error404 into an array of possible error messages
@@ -2553,7 +2582,7 @@ func (wh *WebHacks) BackupBuster(urlFile string) {
 
     urlTest := proto + "://" + rhost  + portStr + path + "non-extisss.rar"
 
-	resp_test, err_test := wh.Dispatch(urlTest, "HEAD", "", headers)
+	resp_test,_, err_test := wh.Dispatch(urlTest, "HEAD", "", headers)
 	if err_test != nil {
 		fmt.Printf("Failed to get URL %s: %v\n", urlTest, err_test)
 	}
@@ -2596,7 +2625,7 @@ func (wh *WebHacks) BackupBuster(urlFile string) {
 		go func() {
 			defer wg.Done()
 			for urlLine := range urlsChan {				
-				resp, err := wh.Dispatch(urlLine, "HEAD", "", headers)
+				resp, _, err := wh.Dispatch(urlLine, "HEAD", "", headers)
 				if err != nil {
 					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
 					continue
@@ -2679,7 +2708,7 @@ func (wh *WebHacks) ConfigBuster(urlFile string) {
 				backupURL := fmt.Sprintf(backup, urlLine)
 				backupURL = url.PathEscape(backupURL)
 				finalURL := proto + "://" + rhost + ":" + rport + path + backupURL
-				resp, err := wh.Dispatch(finalURL, "GET", "", headers)
+				resp, _, err := wh.Dispatch(finalURL, "GET", "", headers)
 				if debug {
 					if err != nil {
 						fmt.Println("Error fetching URL:", finalURL)
