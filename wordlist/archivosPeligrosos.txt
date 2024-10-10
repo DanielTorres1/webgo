@@ -25,6 +25,7 @@ admin/ckfinder/ckfinder.html
 admin/ckfinder/browser/
 application.wadl
 storage/logs/laravel.log
+openadmin/admin/index.php
 backend/.env
 CFIDE/scripts/ajax/FCKeditor/editor/filemanager/connectors/cfm/upload.cfm
 co/?action=usuario

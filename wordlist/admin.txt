@@ -359,6 +359,7 @@ phpMyAdmin2/
 phpmyadmin3/
 phpMyAdmin4/
 phpMyAdminBackup/
+openadmin/
 geoserver
 wgis-geos
 phpmyadmin-old/
