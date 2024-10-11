@@ -2445,7 +2445,8 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				bodyContent := string(bodyBytes)
 
 				// Si redirige a suspendedpage.cgi
-				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") {
+				//http://192.168.8.22:8082/Login.aspx?ReturnUrl=%2f.adm
+				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") ||  strings.Contains(strings.ToLower(lastURL), "returnurl")  {
 					current_status = 404
 				}
 
@@ -2471,17 +2472,15 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 
 				if current_status == 302 || current_status == 301 {
 					
-					redirectURL30x := resp.Header.Get("Location")
-					
-					//fmt.Printf("%s \n", redirectURL30x)
+					redirectURL30x := resp.Header.Get("Location")	
 					
 					if strings.Contains(strings.ToLower(redirectURL30x), "login") || strings.Contains(strings.ToLower(redirectURL30x), "default") {
-						current_status = 200
+						if !strings.Contains(redirectURL30x, "#") && !strings.Contains(redirectURL30x, "//") {
+							current_status = 200
+						}		
 					}
 
-					if !strings.Contains(redirectURL30x, "#") && !strings.Contains(redirectURL30x, "//") {
-						current_status = 200
-					}	
+					
 				}
 				//fmt.Printf(" %s\n", bodyContent)
 				//time.Sleep(5 * time.Second)

@@ -5,10 +5,8 @@ CHANGELOG.txt
 changelog
 ChangeLog
 .htaccess
-robots
 test
 package.json
-robots.txt
 CHANGELOG
 CHANGELOGS
 CHANGELOGS.txt
