@@ -2517,9 +2517,12 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"An attack was detected",
 						"Page not found",
 						"Contact support for additional information",
+						"Ingreso por cuenta",
 						"Invalid token supplied",
 						"No existe el archivo inc.php",
 						"content=\"WordPress",
+						"unexpected problem occurred while processing the request",
+						"intentando ingresar no existe",
 						"error\":\"Error en el metodo",
 						"ENTEL S.A.",
 					}
