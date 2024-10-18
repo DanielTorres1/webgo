@@ -2475,7 +2475,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					redirectURL30x := resp.Header.Get("Location")	
 					
 					if strings.Contains(strings.ToLower(redirectURL30x), "login") || strings.Contains(strings.ToLower(redirectURL30x), "default") {
-						if !strings.Contains(redirectURL30x, "#") && !strings.Contains(redirectURL30x, "//") {
+						if !strings.Contains(redirectURL30x, "#") && !strings.Contains(redirectURL30x, "//") && !strings.Contains(redirectURL30x, "error") {
 							current_status = 200
 						}		
 					}
@@ -2487,9 +2487,6 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				// if current_status == 200 && bodyContent == "" {
 				// 	current_status = 404
 				// }
-
-			
-
 				
 				
 				if (show404 && current_status == 404) || current_status != 404 {
