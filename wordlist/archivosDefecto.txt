@@ -13,8 +13,6 @@ CHANGELOGS
 CHANGELOGS.txt
 README.html
 README
-Default.asp
-Default.aspx
 whoisonline.php
 readme
 Readme
