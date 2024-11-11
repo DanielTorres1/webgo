@@ -12,6 +12,7 @@ Produccion
 pswa
 geoserver/web
 web
+reports/browse/
 sav
 cmg
 intranet
