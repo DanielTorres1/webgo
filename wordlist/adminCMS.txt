@@ -1,5 +1,4 @@
 wp-login.php
-admin/
 user/
 user/login
 administrator/
