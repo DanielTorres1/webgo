@@ -55,17 +55,20 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
 	}
 
 	// Select a User-Agent randomly.
+	
 	selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
 	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+	
 	// Create a custom HTTP transport that ignores SSL certificate errors
 	httpTransport := &http.Transport{
-		//Proxy: http.ProxyURL(proxyURL), //burpsuite
+		//Proxy: http.ProxyURL(proxyURL),
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
 		},
+		ForceAttemptHTTP2: false, // Disable HTTP/2
 	}
-
+	
 	// Create a cookie jar to handle cookies automatically
 	cookieJar, _ := cookiejar.New(nil)
 
@@ -184,6 +187,8 @@ func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, hea
 			req.Header.Add(key, value)
 		}
 	}
+
+
 
 	// Send the request
 	resp, err := client.Do(req)
@@ -2332,27 +2337,39 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	return data, nil
 }
 
-
 func (wh *WebHacks) Dirbuster(urlFile, extension string) {
-
 	headers := wh.Headers
-    debug := wh.Debug
-    show404 := wh.Show404
-    rhost := wh.Rhost
-    rport := wh.Rport
-    path := wh.Path
-    error404 := wh.Error404
-    threads := wh.Threads
-    proto := wh.Proto
+	debug := wh.Debug
+	show404 := wh.Show404
+	rhost := wh.Rhost
+	rport := wh.Rport
+	path := wh.Path
+	error404 := wh.Error404
+	threads := wh.Threads
+	proto := wh.Proto
 	ajax := wh.Ajax
 	timeout := wh.Timeout
 	MaxRedirect := wh.MaxRedirect
 
-	if debug {
-		fmt.Printf("Usando archivo: %s con extension (%s)\n", urlFile, extension)
-		fmt.Printf("Configuracion: Hilos:%s  proto:%s  Ajax: %s error404:%s show404 %s timeout %s debug %s MaxRedirect %s \n\n", threads, proto, ajax, error404, show404,timeout, debug, MaxRedirect)
+	// Check for always redirect condition
+	nonExistentURL := proto + "://" + rhost + ":" + rport + "/0kbjhvhjvjh/"
+
+	resp, lastURL, err := wh.Dispatch(nonExistentURL, "GET", "", headers)
+
+	defer resp.Body.Close()
+	//check is always 302
+	if strings.Contains(strings.ToLower(lastURL), "login") {	
+		fmt.Printf("lastURL: %s \n", lastURL)
+		return //no proceder always 302
 	}
 
+	
+
+	if debug {
+		fmt.Printf("Usando archivo: %s con extension (%s)\n", urlFile, extension)		
+		fmt.Printf("Configuracion: Hilos:%s proto:%s Ajax:%s error404:%s show404:%s timeout:%s debug:%s MaxRedirect:%s \n\n",
+			threads, proto, ajax, error404, show404, timeout, debug, MaxRedirect)
+	}
 
 	file, err := os.Open(urlFile)
 	if err != nil {
@@ -2366,73 +2383,66 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 	for scanner.Scan() {
 		urlLine := scanner.Text()
 
-		//si hay que reemplazar extension
+		// Replace extensions if specified
 		if extension != "" {
 			switch extension {
-				case "php":
-					urlLine = strings.ReplaceAll(urlLine, "EXT", "php")
-				case "html":
-					urlLine = strings.ReplaceAll(urlLine, "EXT", "html")
-				case "asp":
-					urlLine = strings.ReplaceAll(urlLine, "EXT", "asp")
-				case "aspx":
-					urlLine = strings.ReplaceAll(urlLine, "EXT", "aspx")
-				case "htm":
-					urlLine = strings.ReplaceAll(urlLine, "EXT", "htm")
-				case "jsp":
-					urlLine = strings.ReplaceAll(urlLine, "EXT", "jsp")
-				case "pl":
-					urlLine = strings.ReplaceAll(urlLine, "EXT", "pl")
-				}
+			case "php":
+				urlLine = strings.ReplaceAll(urlLine, "EXT", "php")
+			case "html":
+				urlLine = strings.ReplaceAll(urlLine, "EXT", "html")
+			case "asp":
+				urlLine = strings.ReplaceAll(urlLine, "EXT", "asp")
+			case "aspx":
+				urlLine = strings.ReplaceAll(urlLine, "EXT", "aspx")
+			case "htm":
+				urlLine = strings.ReplaceAll(urlLine, "EXT", "htm")
+			case "jsp":
+				urlLine = strings.ReplaceAll(urlLine, "EXT", "jsp")
+			case "pl":
+				urlLine = strings.ReplaceAll(urlLine, "EXT", "pl")
+			}
 		}
 
-		//Si  directorio adicionar "/"
+		// Append "/" if the URL file suggests directories
 		if strings.Contains(urlFile, "folders") {
 			urlLine += "/"
 		}
-		
-		//adicionar puerto solo si es diferente a 80 o 443
-		 portStr := ""
-		 if rport != "80" && rport != "443" {
-		 	portStr = ":" + rport
-		 }
 
-		urlFinal := proto + "://" + rhost  + portStr + path + urlLine
+		// Append port only if it's not default
+		portStr := ""
+		if rport != "80" && rport != "443" {
+			portStr = ":" + rport
+		}
 
+		urlFinal := proto + "://" + rhost + portStr + path + urlLine
 		links = append(links, urlFinal)
 	}
-
 
 	var wg sync.WaitGroup
 	wg.Add(threads)
 
 	urlsChan := make(chan string, len(links))
 
-	// Start a pool of worker goroutines.
+	// Start a pool of worker goroutines
 	for i := 0; i < threads; i++ {
 		go func() {
 			defer wg.Done()
-			for urlLine := range urlsChan {				
+			for urlLine := range urlsChan {
 				resp, lastURL, err := wh.Dispatch(urlLine, "GET", "", headers)
+				
 				if err != nil {
 					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
 					continue
 				}
 				defer resp.Body.Close()
 
+				// Handle response body and potential gzip decompression
 				var bodyReader io.ReadCloser
 				switch resp.Header.Get("Content-Encoding") {
-				case "gzip":
+				case "gzip", "x-gzip":
 					bodyReader, err = gzip.NewReader(resp.Body)
 					if err != nil {
 						fmt.Println("Error al descomprimir la respuesta gzip")
-						os.Exit(1)
-					}
-					defer bodyReader.Close()
-				case "x-gzip":
-					bodyReader, err = gzip.NewReader(resp.Body)
-					if err != nil {
-						fmt.Println("Error al descomprimir la respuesta x-gzip")
 						os.Exit(1)
 					}
 					defer bodyReader.Close()
@@ -2444,55 +2454,38 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				current_status := resp.StatusCode
 				bodyContent := string(bodyBytes)
 
-				// Si redirige a suspendedpage.cgi
-				//http://192.168.8.22:8082/Login.aspx?ReturnUrl=%2f.adm
-				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") ||  strings.Contains(strings.ToLower(lastURL), "returnurl")  {
+				// Handle suspended page redirections
+				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || strings.Contains(strings.ToLower(lastURL), "returnurl") {
 					current_status = 404
 				}
 
-				//check if return a custom 404 error but 200 OK
+				// Check for custom 404 errors
 				if error404 != "" {
-					// Split error404 into an array of possible error messages
 					errorMessages := strings.Split(error404, "|")
-				
-					// Convert the bodyContent to lowercase for case-insensitive comparison
 					lowerBodyContent := strings.ToLower(bodyContent)
-				
-					// Iterate over each possible error message
 					for _, errorMessage := range errorMessages {
-						lowerErrorMessage := strings.ToLower(errorMessage)
-						//fmt.Printf("%s \n", lowerBodyContent)
-						if strings.Contains(lowerBodyContent, lowerErrorMessage) {
-							// If any error message is found in the bodyContent, set the status to 404
+						if strings.Contains(lowerBodyContent, strings.ToLower(errorMessage)) {
 							current_status = 404
 							break
 						}
 					}
 				}
 
+				// Handle 30x redirections
 				if current_status == 302 || current_status == 301 {
-					
-					redirectURL30x := resp.Header.Get("Location")	
-					
+					redirectURL30x := resp.Header.Get("Location")
 					if strings.Contains(strings.ToLower(redirectURL30x), "login") || strings.Contains(strings.ToLower(redirectURL30x), "default") {
 						if !strings.Contains(redirectURL30x, "#") && !strings.Contains(redirectURL30x, "//") && !strings.Contains(redirectURL30x, "error") {
 							current_status = 200
-						}		
+						}
 					}
-
-					
 				}
-				//fmt.Printf(" %s\n", bodyContent)
-				//time.Sleep(5 * time.Second)
-				// if current_status == 200 && bodyContent == "" {
-				// 	current_status = 404
-				// }
-				
-				
+
+				// Show results based on status
 				if (show404 && current_status == 404) || current_status != 404 {
 					vuln := ""
-					if  current_status == 200 {
-						vuln = checkVuln(bodyContent,"")
+					if current_status == 200 {
+						vuln = checkVuln(bodyContent, "")
 					}
 
 					errors := []string{
@@ -2521,36 +2514,36 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"unexpected problem occurred while processing the request",
 						"intentando ingresar no existe",
 						"error\":\"Error en el metodo",
+						"nx-react-app",
 						"ENTEL S.A.",
+						"ManageEngine",
+						"moodlesimple",
 					}
-					
-					
+
 					if containsAny(bodyContent, errors) {
-						if vuln == "" { // si no contiene error set 404
+						if vuln == "" {
 							current_status = 404
 						}
 					}
-					
+
 					if vuln != "" {
 						fmt.Printf("%d | %s (vulnerabilidad=%s) | %d\n", current_status, urlLine, vuln, len(bodyContent))
 					} else {
 						fmt.Printf("%d | %s | %d\n", current_status, urlLine, len(bodyContent))
 					}
-
 				}
 			}
 		}()
 	}
 
-	// Send URLs to the channel for processing by the workers.
+	// Send URLs to the channel for processing
 	for _, urlLine := range links {
 		urlsChan <- urlLine
 	}
 	close(urlsChan)
 
-	wg.Wait() // Wait for all goroutines to finish.
+	wg.Wait() // Wait for all goroutines to finish
 }
-
 
 // only HEAD requests
 func (wh *WebHacks) BackupBuster(urlFile string) {
