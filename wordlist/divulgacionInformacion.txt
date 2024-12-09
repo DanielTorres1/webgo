@@ -199,8 +199,6 @@ php.php
 php-reverse-shell.php
 phpspec.yml
 phpThumb.php
-phpunit.xml
-phpunit.xml.dist
 pinfo.php
 plugins.log
 production.log

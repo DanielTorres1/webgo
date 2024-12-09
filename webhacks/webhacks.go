@@ -2517,6 +2517,8 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"nx-react-app",
 						"ENTEL S.A.",
 						"ManageEngine",
+						"ErrorPage",
+						"aspxerrorpath",
 						"moodlesimple",
 					}
 

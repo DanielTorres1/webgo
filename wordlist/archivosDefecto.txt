@@ -8,6 +8,8 @@ ChangeLog
 .htaccess
 test
 package.json
+phpunit.xml
+phpunit.xml.dist
 update/access.txt
 CHANGELOG
 CHANGELOGS
