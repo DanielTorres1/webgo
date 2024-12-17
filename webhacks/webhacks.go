@@ -232,6 +232,8 @@ func getRedirect(decodedResponse string) string {
 		`(?i)redirect_suffix ?= ?['"](.*?)['"]`,
 		`(?i)The document has moved ?<a href=['"](.*?)['"]`,
 		`(?i)Location: (.*?)\r?\n`,
+		`(?i)window\.open\(['"](.*?)['"]`,
+		
 	}
 
 	// Iterate over patterns to find a match
@@ -1480,9 +1482,14 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		if responseLength < 700 {
 			responseHeaders := headerToString(resp.Header)
 			decodedHeaderResponse := responseHeaders + "\n" + decodedResponse
+			// Fix location.href='https://192.168.111.95:8443/index.do"+showPreLogin;
+			decodedHeaderResponse = strings.ReplaceAll(decodedHeaderResponse, "\"+\"", "")
+
+
 			redirectURL = getRedirect(decodedHeaderResponse)
 			if debug {
 				fmt.Printf("redirect_url (%s)\n", redirectURL)
+				//fmt.Printf("decodedHeaderResponse (%s)\n", decodedHeaderResponse)
 			}
 		} else {
 			redirectURL = ""
