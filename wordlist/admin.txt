@@ -1,4 +1,5 @@
 0admin/
+admin.php
 1admin/
 2phpmyadmin/
 acceso/
@@ -194,7 +195,6 @@ adminpanel.cfm
 admin_panel.html
 adminpanel.html
 adminpanel.php
-admin.php
 adminpro/
 admins
 admins/

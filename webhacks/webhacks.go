@@ -1,7 +1,9 @@
 package webhacks
 
 import (
+	"context"
 	"crypto/md5"
+	"log"
 	"encoding/hex"
 	"crypto/tls"
 	"compress/gzip"
@@ -10,6 +12,7 @@ import (
 	"strconv"
 	"unicode"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,9 +24,17 @@ import (
 	"strings"
 	"net/http/cookiejar"
 	"github.com/fatih/color"
+	"golang.org/x/net/proxy"
 )
 
 var debug bool
+
+
+type Client struct {
+    http.Client
+    LastURL string
+}
+
 
 type WebHacks struct {
 	Debug       bool
@@ -38,73 +49,103 @@ type WebHacks struct {
 	Proto       string
 	Cookie      string
 	Ajax        bool
-	Client      *http.Client
+	Client      *Client
 	Headers     http.Header
 }
 
-
-
 func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
-	// Initialize the random number generator.
-	rand.Seed(time.Now().UnixNano())
+    // Initialize the random number generator
+    rand.Seed(time.Now().UnixNano())
 
-	// List of the most used User-Agents.
-	userAgents := []string{
-		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
-	}
+    userAgents := []string{
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
+    }
 
-	// Select a User-Agent randomly.
-	
-	selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
-	//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
-	
-	// Create a custom HTTP transport that ignores SSL certificate errors
-	httpTransport := &http.Transport{
-		//Proxy: http.ProxyURL(proxyURL),
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			MinVersion:         tls.VersionTLS10,
-		},
-		ForceAttemptHTTP2: false, // Disable HTTP/2
-	}
-	
-	// Create a cookie jar to handle cookies automatically
-	cookieJar, _ := cookiejar.New(nil)
+    selectedUserAgent := userAgents[rand.Intn(len(userAgents))]
 
-	httpClient := &http.Client{
-		Transport: httpTransport,
-		Timeout:   time.Duration(timeoutInSeconds) * time.Second, // Set the timeout for individual requests
-		Jar:       cookieJar, // Use the cookie jar
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= MaxRedirect {
-				return http.ErrUseLastResponse // Stop after MaxRedirect
-			}
-			return nil // Allow the redirect
-		},
-	}
+    // Create the transport based on whether we're running under proxychains
+    var httpTransport *http.Transport
 
-	wh := &WebHacks{
-		Client:      httpClient,
-		Headers:     http.Header{},
-		Timeout:     timeoutInSeconds,
-		MaxRedirect: MaxRedirect,
-	}
+    // Check if running under proxychains by looking for the LD_PRELOAD environment variable
+    if ldPreload := os.Getenv("LD_PRELOAD"); strings.Contains(ldPreload, "proxychains") {
+        // Create a SOCKS5 dialer for proxychains
+        dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:1080", nil, proxy.Direct)
+        if err != nil {
+            log.Printf("Warning: Failed to create SOCKS5 dialer: %v", err)
+            // Fall back to direct connection if SOCKS5 setup fails
+            httpTransport = &http.Transport{
+                TLSClientConfig: &tls.Config{
+                    InsecureSkipVerify: true,
+                    MinVersion:         tls.VersionTLS10,
+                },
+                ForceAttemptHTTP2: false,
+            }
+        } else {
+            // Use SOCKS5 proxy
+            httpTransport = &http.Transport{
+                DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+                    return dialer.Dial(network, addr)
+                },
+                TLSClientConfig: &tls.Config{
+                    InsecureSkipVerify: true,
+                    MinVersion:         tls.VersionTLS10,
+                },
+                ForceAttemptHTTP2: false,
+            }
+        }
+    } else {
+        // Direct connection when not using proxychains
+		//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+        httpTransport = &http.Transport{
+			//Proxy: http.ProxyURL(proxyURL), //burpsuite
+            TLSClientConfig: &tls.Config{
+                InsecureSkipVerify: true,
+                MinVersion:         tls.VersionTLS10,
+            },
+            ForceAttemptHTTP2: false,
+        }
+    }
 
-	// Configure headers
-	wh.Headers.Set("User-Agent", selectedUserAgent)
-	wh.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-	wh.Headers.Set("Accept-Language", "en-US,en;q=0.5")
-	wh.Headers.Set("Upgrade-Insecure-Requests", "1")
-	wh.Headers.Set("Sec-Fetch-Dest", "document")
-	wh.Headers.Set("Sec-Fetch-Mode", "navigate")
-	wh.Headers.Set("Sec-Fetch-Site", "none")
+    // Create a cookie jar to handle cookies automatically
+    cookieJar, _ := cookiejar.New(nil)
 
-	if wh.Ajax {
-		wh.Headers.Set("X-Requested-With", "XmlHttpRequest")
-	}
+    // Create and initialize our custom Client
+    client := &Client{}
+    
+    // Initialize the embedded http.Client fields
+    client.Transport = httpTransport
+    client.Timeout = time.Duration(timeoutInSeconds) * time.Second
+    client.Jar = cookieJar
+    client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+        client.LastURL = req.URL.String()
+        if len(via) >= MaxRedirect {
+            return http.ErrUseLastResponse
+        }
+        return nil
+    }
 
-	return wh
+    wh := &WebHacks{
+        Client:      client,
+        Headers:     http.Header{},
+        Timeout:     timeoutInSeconds,
+        MaxRedirect: MaxRedirect,
+    }
+
+    // Configure headers
+    wh.Headers.Set("User-Agent", selectedUserAgent)
+    wh.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+    wh.Headers.Set("Accept-Language", "en-US,en;q=0.5")
+    wh.Headers.Set("Upgrade-Insecure-Requests", "1")
+    wh.Headers.Set("Sec-Fetch-Dest", "document")
+    wh.Headers.Set("Sec-Fetch-Mode", "navigate")
+    wh.Headers.Set("Sec-Fetch-Site", "none")
+
+    if wh.Ajax {
+        wh.Headers.Set("X-Requested-With", "XmlHttpRequest")
+    }
+
+    return wh
 }
 
 
@@ -144,64 +185,52 @@ func ConvertHash(hashData map[string]string) string {
 	return result
 }
 
-
 func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, headers http.Header) (*http.Response, string, error) {
-	// Keep track of the last URL
-	var lastURL string
+    // Prepare the request
+    var req *http.Request
+    var err error
 
-	// Create a custom client with a Transport that disables certificate verification
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // Disable TLS certificate verification
-			},
-		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Update lastURL each time there's a redirect
-			lastURL = req.URL.String()
-			// Allow following redirects
-			return nil
-		},
-	}
+    if method == "POST" {
+        req, err = http.NewRequest(method, urlLine, strings.NewReader(postData))
+        if err != nil {
+            return nil, "", err
+        }
+        req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+    } else {
+        req, err = http.NewRequest(method, urlLine, nil)
+        if err != nil {
+            return nil, "", err
+        }
+    }
 
-	// Prepare the request
-	var req *http.Request
-	var err error
+    // Add default headers from WebHacks
+    for key, values := range wh.Headers {
+        for _, value := range values {
+            req.Header.Add(key, value)
+        }
+    }
 
-	if method == "POST" {
-		req, err = http.NewRequest(method, urlLine, strings.NewReader(postData))
-		if err != nil {
-			return nil, "", err
-		}
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	} else {
-		req, err = http.NewRequest(method, urlLine, nil)
-		if err != nil {
-			return nil, "", err
-		}
-	}
+    // Add custom headers passed to the method
+    for key, values := range headers {
+        for _, value := range values {
+            req.Header.Add(key, value)
+        }
+    }
 
-	// Add headers
-	for key, values := range headers {
-		for _, value := range values {
-			req.Header.Add(key, value)
-		}
-	}
+    // Send the request
+    resp, err := wh.Client.Do(req)
+    if err != nil {
+        return nil, "", err
+    }
 
-
-
-	// Send the request
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, "", err
-	}
-
-	// If there were no redirects, lastURL will be the original URL
-	if lastURL == "" {
-		lastURL = req.URL.String()
-	}
-
-	return resp, lastURL, nil
+    // Get the last URL after any redirects
+    lastURL := wh.Client.LastURL
+    
+    // If there were no redirects, use the original URL
+    if lastURL == "" {
+        lastURL = req.URL.String()
+    }
+    return resp, lastURL, nil
 }
 
 	
@@ -2359,18 +2388,10 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 	MaxRedirect := wh.MaxRedirect
 
 	// Check for always redirect condition
-	nonExistentURL := proto + "://" + rhost + ":" + rport + "/0kbjhvhjvjh/"
+	nonExistentURL1 := proto + "://" + rhost + ":" + rport + path +"0kbjhvhjvjh/"
 
-	resp, lastURL, err := wh.Dispatch(nonExistentURL, "GET", "", headers)
+	_, lastURL404, _ := wh.Dispatch(nonExistentURL1, "GET", "", headers)
 
-	defer resp.Body.Close()
-	//check is always 302
-	if strings.Contains(strings.ToLower(lastURL), "login") {	
-		fmt.Printf("lastURL: %s \n", lastURL)
-		return //no proceder always 302
-	}
-
-	
 
 	if debug {
 		fmt.Printf("Usando archivo: %s con extension (%s)\n", urlFile, extension)		
@@ -2462,7 +2483,9 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				bodyContent := string(bodyBytes)
 
 				// Handle suspended page redirections
-				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || strings.Contains(strings.ToLower(lastURL), "returnurl") {
+				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || 
+				strings.Contains(strings.ToLower(lastURL), "returnurl") || 
+				lastURL == lastURL404 {
 					current_status = 404
 				}
 
