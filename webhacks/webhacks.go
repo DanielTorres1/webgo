@@ -1,5 +1,5 @@
 package webhacks
-
+// TODO configApache not checking 302 redirect
 import (
 	"context"
 	"crypto/md5"
@@ -31,7 +31,7 @@ var debug bool
 
 
 type Client struct {
-    http.Client
+    *http.Client
     LastURL string
 }
 
@@ -96,9 +96,9 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
         }
     } else {
         // Direct connection when not using proxychains
-		//proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+       // proxyURL, _ := url.Parse("http://127.0.0.1:8080") // burpsuite
         httpTransport = &http.Transport{
-			//Proxy: http.ProxyURL(proxyURL), //burpsuite
+            //Proxy: http.ProxyURL(proxyURL), //burpsuite
             TLSClientConfig: &tls.Config{
                 InsecureSkipVerify: true,
                 MinVersion:         tls.VersionTLS10,
@@ -110,10 +110,12 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
     // Create a cookie jar to handle cookies automatically
     cookieJar, _ := cookiejar.New(nil)
 
-    // Create and initialize our custom Client
-    client := &Client{}
+    // Create and initialize our custom Client - FIXED THIS PART
+    client := &Client{
+        Client: &http.Client{},  // Initialize the embedded http.Client
+    }
     
-    // Initialize the embedded http.Client fields
+    // Initialize the http.Client fields
     client.Transport = httpTransport
     client.Timeout = time.Duration(timeoutInSeconds) * time.Second
     client.Jar = cookieJar
@@ -223,14 +225,11 @@ func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, hea
         return nil, "", err
     }
 
-    // Get the last URL after any redirects
-    lastURL := wh.Client.LastURL
+    // Update LastURL with the final URL after potential redirects
+    finalURL := resp.Request.URL.String()
+    wh.Client.LastURL = finalURL
     
-    // If there were no redirects, use the original URL
-    if lastURL == "" {
-        lastURL = req.URL.String()
-    }
-    return resp, lastURL, nil
+    return resp, finalURL, nil
 }
 
 	
@@ -2397,6 +2396,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 		fmt.Printf("Usando archivo: %s con extension (%s)\n", urlFile, extension)		
 		fmt.Printf("Configuracion: Hilos:%s proto:%s Ajax:%s error404:%s show404:%s timeout:%s debug:%s MaxRedirect:%s \n\n",
 			threads, proto, ajax, error404, show404, timeout, debug, MaxRedirect)
+		//fmt.Printf("lastURL404: %s \n", lastURL404)
 	}
 
 	file, err := os.Open(urlFile)
@@ -2457,7 +2457,6 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 			defer wg.Done()
 			for urlLine := range urlsChan {
 				resp, lastURL, err := wh.Dispatch(urlLine, "GET", "", headers)
-				
 				if err != nil {
 					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
 					continue

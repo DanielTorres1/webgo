@@ -349,7 +349,6 @@ phpMyAdmin/
 admin-real/
 phpmyadmin0/
 cacti/
-index.php/cruge/ui/login
 phpmyadmin1/
 rdweb/
 phpmyadmin2/
