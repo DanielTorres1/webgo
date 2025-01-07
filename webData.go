@@ -62,6 +62,7 @@ func main() {
 	newDomain := data["newdomain"]
 	vulnerability := data["vulnerability"]
 	poweredBy := data["poweredBy"]
+	footer := data["footer"]
 
 	if len(vulnerability) > 1 {
 		vulnerability = "vulnerabilidad=" + vulnerability
@@ -78,7 +79,7 @@ func main() {
 	if newDomain != "" {
 		fmt.Printf("%s~%s~%s~%s~%s~%s~%s~^Dominio identificado^%s\n", title, server, status, redirectURL, lastURL, poweredBy, vulnerability, newDomain)
 	} else {
-		fmt.Printf("%s~%s~%s~%s~%s~%s~%s\n", title, server, status, redirectURL, lastURL, poweredBy, vulnerability)
+		fmt.Printf("%s~%s~%s~%s~%s~%s~%s~%s\n", title, server, status, redirectURL, lastURL, poweredBy,footer, vulnerability)
 	}
 
 }

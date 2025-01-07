@@ -3,8 +3,10 @@ package webhacks
 import (
 	"context"
 	"crypto/md5"
+	"bytes"
 	"log"
 	"encoding/hex"
+	"golang.org/x/net/html"
 	"crypto/tls"
 	"compress/gzip"
 	"bufio"
@@ -96,7 +98,7 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
         }
     } else {
         // Direct connection when not using proxychains
-       // proxyURL, _ := url.Parse("http://127.0.0.1:8080") // burpsuite
+        //proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
         httpTransport = &http.Transport{
             //Proxy: http.ProxyURL(proxyURL), //burpsuite
             TLSClientConfig: &tls.Config{
@@ -1358,13 +1360,8 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 
 			decodedResponse := string(body)
 
-			title := ""
-			re := regexp.MustCompile(`(?i)<title>(.*?)</title>`)
-			titleMatch := re.FindStringSubmatch(decodedResponse)
-			if len(titleMatch) > 1 {
-				title = titleMatch[1]
-			}
-
+			
+			title := extractTitle(decodedResponse)
 			fmt.Printf("[+] user:%s password:%s title:%s\n", user, password, title)
 
 			if strings.Contains(title, "Control Panel") {
@@ -1375,6 +1372,79 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 	}//joomla
 
 }//passwordTest
+
+
+func extractTitle(html string) string {
+    // First attempt: match multiline title with whitespace
+    re := regexp.MustCompile(`(?is)<title>\s*(.*?)\s*</title>`)
+    match := re.FindStringSubmatch(html)
+    if len(match) > 1 {
+        // Clean up the extracted title
+        title := match[1]
+        // Remove newlines, tabs, and extra spaces
+        title = regexp.MustCompile(`[\n\t\r]+`).ReplaceAllString(title, " ")
+        // Collapse multiple spaces into single space
+        title = regexp.MustCompile(`\s+`).ReplaceAllString(title, " ")
+        // Trim leading/trailing spaces
+        title = strings.TrimSpace(title)
+        return title
+    }
+    return ""
+}
+
+
+func ExtractFooterText(htmlContent string) (string) {
+    doc, _ := html.Parse(strings.NewReader(htmlContent))
+
+    var footerText string
+    var findFooterText func(*html.Node)
+
+    findFooterText = func(n *html.Node) {
+        if n.Type == html.ElementNode && n.Data == "footer" {
+            var buf bytes.Buffer
+            // Extract all text from footer and its children
+            var extractText func(*html.Node)
+            extractText = func(n *html.Node) {
+                if n.Type == html.TextNode {
+                    text := strings.TrimSpace(n.Data)
+                    if text != "" {
+                        if buf.Len() > 0 {
+                            buf.WriteString(" ")
+                        }
+                        buf.WriteString(text)
+                    }
+                }
+                for c := n.FirstChild; c != nil; c = c.NextSibling {
+                    extractText(c)
+                }
+            }
+            extractText(n)
+            footerText = strings.TrimSpace(buf.String())
+            return
+        }
+
+        for c := n.FirstChild; c != nil; c = c.NextSibling {
+            findFooterText(c)
+        }
+    }
+
+    findFooterText(doc)
+    if footerText == "" {
+        return ""
+    }
+
+    return footerText
+}
+
+func stripPort(url string) string {
+    parts := strings.Split(url, ":")
+    if len(parts) == 3 {
+        // Case: https://181.188.147.65:443/login
+        return parts[0] + ":" + parts[1] + parts[2]
+    }
+    // Case: https://181.188.147.65/login
+    return url
+}
 
 func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	debug := wh.Debug
@@ -1578,61 +1648,15 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 
 	// ############### title ########
-	title := ""
-	re := regexp.MustCompile(`(?i)<title>(.*?)</title>`)
-	titleMatch := re.FindStringSubmatch(decodedHeaderResponse)
-	if len(titleMatch) > 1 {
-		title = titleMatch[1]
-	}
-
-	if title == "" {
-		re = regexp.MustCompile(`(?i)<title>\s*(.*?)\s*</title>`)
-		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
-		if len(titleMatch) > 1 {
-			title = titleMatch[1]
-		}
-	}
-
-	if title == "" {
-		re = regexp.MustCompile(`(?i)<title(.*?)\n`)
-		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
-		if len(titleMatch) > 1 {
-			title = titleMatch[1]
-		}
-	}
-
-	if title == "" {
-		re = regexp.MustCompile(`(?i)Title:(.*?)\n`)
-		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
-		if len(titleMatch) > 1 {
-			title = titleMatch[1]
-		}
-	}
-
-	if title == "" {
-		re = regexp.MustCompile(`(?i)>(.*?)</title>`)
-		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
-		if len(titleMatch) > 1 {
-			title = titleMatch[1]
-		}
-	}
-
-	if title == "" {
-		re = regexp.MustCompile(`(?i)\n(.*?)\n</title>`)
-		titleMatch = re.FindStringSubmatch(decodedHeaderResponse)
-		if len(titleMatch) > 1 {
-			title = titleMatch[1]
-		}
-	}
-
-	title = regexp.MustCompile(`>|\n|\t|\r`).ReplaceAllString(title, "")
-	title = onlyAscii(title)
-	if len(title) > 50 {
-		title = title[:50]
-	}
-
+	
+	
+	//fmt.Printf("decodedHeaderResponse %s\n", decodedHeaderResponse)	
+	title := extractTitle(decodedHeaderResponse)
+	footer := ExtractFooterText(decodedHeaderResponse)
+		
 	if debug {
 		fmt.Printf("title %s\n", title)
+		fmt.Printf("footer %s\n", footer)
 	}
 
 
@@ -1707,7 +1731,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	
 	// ########## server ########
 	server := ""
-	re = regexp.MustCompile(`(?i)Server:(.*?)\n`)
+	re := regexp.MustCompile(`(?i)Server:(.*?)\n`)
 	serverMatch := re.FindStringSubmatch(responseHeaders)
 	if len(serverMatch) > 1 {
 		server = serverMatch[1]
@@ -2051,8 +2075,8 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 	
 
-	if strings.Contains(decodedHeaderResponse, "<app-root>") {
-        poweredBy += "|Angular"
+	if strings.Contains(decodedHeaderResponse, "</app>")  || strings.Contains(decodedHeaderResponse, "<app-root>")  || strings.Contains(decodedHeaderResponse, `div id="root"`) || strings.Contains(decodedHeaderResponse, "angular.bootstrap")   {
+        poweredBy += "|JavascriptFramework"
     }
 
 	if strings.Contains(decodedHeaderResponse, "Please ensure that the other VPN client pages ") {
@@ -2367,6 +2391,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		"newdomain":     newDomain,
 		"poweredBy":     poweredBy,
 		"vulnerability": vulnerability,
+		"footer": footer,
 	}
 
 	return data, nil
@@ -2387,16 +2412,22 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 	MaxRedirect := wh.MaxRedirect
 
 	// Check for always redirect condition
-	nonExistentURL1 := proto + "://" + rhost + ":" + rport + path +"0kbjhvhjvjh/"
+	// Append port only if it's not default
+	portStr := ""
+	if rport != "80" && rport != "443" {
+		portStr = ":" + rport
+	}
 
-	_, lastURL404, _ := wh.Dispatch(nonExistentURL1, "GET", "", headers)
+	nonExistentURL1 := proto + "://" + rhost + portStr + path +"0kbjhvhjvjh/"
 
+	response404, lastURL404, _ := wh.Dispatch(nonExistentURL1, "GET", "", headers)
+	status404 := response404.StatusCode
 
 	if debug {
 		fmt.Printf("Usando archivo: %s con extension (%s)\n", urlFile, extension)		
 		fmt.Printf("Configuracion: Hilos:%s proto:%s Ajax:%s error404:%s show404:%s timeout:%s debug:%s MaxRedirect:%s \n\n",
 			threads, proto, ajax, error404, show404, timeout, debug, MaxRedirect)
-		//fmt.Printf("lastURL404: %s \n", lastURL404)
+		fmt.Printf("lastURL404: %s status404 %s \n", lastURL404,status404)
 	}
 
 	file, err := os.Open(urlFile)
@@ -2437,7 +2468,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 		}
 
 		// Append port only if it's not default
-		portStr := ""
+		portStr = ""
 		if rport != "80" && rport != "443" {
 			portStr = ":" + rport
 		}
@@ -2482,10 +2513,15 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				bodyContent := string(bodyBytes)
 
 				// Handle suspended page redirections
+				//fmt.Printf("resp %s\n", resp)
+				//fmt.Printf("current_status %s\n", current_status)
+
+
 				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || 
 				strings.Contains(strings.ToLower(lastURL), "returnurl") || 
-				lastURL == lastURL404 {
-					current_status = 404
+				lastURL == lastURL404 || status404 == 200 {
+					fmt.Printf("Forzando 404\n")
+					current_status = 404					
 				}
 
 				// Check for custom 404 errors
