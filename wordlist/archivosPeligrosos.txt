@@ -11,8 +11,10 @@ fckeditor/editor/filemanager/browser/default/frmupload.html
 fckeditor/editor/filemanager/upload/test.html
 fckeditor/fckconfig.js
 config.auth
+newpost
 admin.php
 api/.env
+Telerik.Web.UI.WebResource.axd?type=rau
 .env.local
 UserManagerAPI/appsettings.json
 appsettings.json    
@@ -46,6 +48,7 @@ graphiql.php
 graphql
 graphql/console/
 graphql.php
+upload
 .hg/
 include/config.inc
 IoMgmt/Adapters/wifi0/WPS/Pin

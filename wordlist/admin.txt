@@ -4,6 +4,7 @@ admin.php
 2phpmyadmin/
 acceso/
 acceso.asp
+;param=value/manager/html
 acceso.js
 acceso.php
 account.asp

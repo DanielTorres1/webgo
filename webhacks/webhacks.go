@@ -1445,6 +1445,56 @@ func stripPort(url string) string {
     // Case: https://181.188.147.65/login
     return url
 }
+func getBody(resp *http.Response) (string, int) {
+    if resp == nil {
+        return "", 0
+    }
+    
+    // Always close the original response body when done
+    defer resp.Body.Close()
+    
+    var bodyReader io.ReadCloser
+    switch resp.Header.Get("Content-Encoding") {
+    case "gzip", "x-gzip":
+        bodyReader, err := gzip.NewReader(resp.Body)
+        if err != nil {
+            return "", 0
+        }
+        defer bodyReader.Close()
+    default:
+        bodyReader = resp.Body
+    }
+    
+    // Read the entire body using ioutil.ReadAll
+    body, _ := ioutil.ReadAll(bodyReader)
+    
+    // Process the response
+    decodedResponse := string(body)
+    decodedResponse = strings.ReplaceAll(decodedResponse, "'", "\"")
+    decodedResponse = regexp.MustCompile(".*\\/logout.*\\n").ReplaceAllString(decodedResponse, "")
+    decodedResponse = regexp.MustCompile(".*sclogin.html*").ReplaceAllString(decodedResponse, "")
+    decodedResponse = regexp.MustCompile(".*index.html*").ReplaceAllString(decodedResponse, "")
+    decodedResponse = regexp.MustCompile(".*?console*").ReplaceAllString(decodedResponse, "")
+    responseLength := len(decodedResponse)
+
+	decodedResponse = strings.ReplaceAll(decodedResponse, "'", "\"")
+	decodedResponse = regexp.MustCompile("[^\\x00-\\x7f]").ReplaceAllString(decodedResponse, "")
+	decodedResponse = regexp.MustCompile("/index.php").ReplaceAllString(decodedResponse, "")
+	decodedResponse = strings.ReplaceAll(decodedResponse, "https", "http")
+	decodedResponse = strings.ReplaceAll(decodedResponse, "www.", "")
+	decodedResponse = regexp.MustCompile("admin@example.com").ReplaceAllString(decodedResponse, "")
+	decodedResponse = regexp.MustCompile("postmaster@example.com").ReplaceAllString(decodedResponse, "")
+
+
+	responseHeaders := headerToString(resp.Header)
+	decodedHeaderResponse := responseHeaders + "\n" + decodedResponse
+	// Fix location.href='https://192.168.111.95:8443/index.do"+showPreLogin;
+	decodedHeaderResponse = strings.ReplaceAll(decodedHeaderResponse, "\"+\"", "")
+
+
+    return decodedHeaderResponse, responseLength
+}
+
 
 func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	debug := wh.Debug
@@ -1470,6 +1520,8 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	newDomain := ""
 	lastURL := ""
 	vulnerability := ""
+	decodedHeaderResponse:=""
+	responseLength:=0
 
 	origURL, _ := url.Parse(urlOriginal)
 	domainOriginal := origURL.Hostname()
@@ -1479,63 +1531,39 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			fmt.Printf("urlOriginal (%s)\n", urlOriginal)
 			fmt.Printf("redirect_url en WHILE1 (%s)\n", redirectURL)
 		}
-		resp, _, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)
+		resp, _, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)	
+
 		lastURL = resp.Request.URL.String()
 		StatusCode = resp.StatusCode
-		var bodyReader io.ReadCloser
-		switch resp.Header.Get("Content-Encoding") {
-		case "gzip":
-			bodyReader, err = gzip.NewReader(resp.Body)
-			if err != nil {
-				fmt.Println("Error al descomprimir la respuesta gzip")
-				os.Exit(1)
+		decodedHeaderResponse, responseLength = getBody(resp)
+				
+		//////////////////// protocol error ////////		
+		if err != nil {
+			errStr := err.Error()
+			if debug {
+			fmt.Printf("Debug - Error string: %s\n", errStr)
 			}
-			defer bodyReader.Close()
-		case "x-gzip":
-			bodyReader, err = gzip.NewReader(resp.Body)
-			if err != nil {
-				fmt.Println("Error al descomprimir la respuesta x-gzip")
-				os.Exit(1)
-			}
-			defer bodyReader.Close()
-		default:
-			bodyReader = resp.Body
-		}
 
-		body, _ := ioutil.ReadAll(bodyReader)
-		resp.Body.Close()
-		decodedResponse = string(body)
-		decodedResponse = strings.ReplaceAll(decodedResponse, "'", "\"")
-		//decodedResponse = strings.ReplaceAll(decodedResponse, "<noscript>.*?</noscript>", "")
-		decodedResponse = regexp.MustCompile(".*\\/logout.*\\n").ReplaceAllString(decodedResponse, "")
-		decodedResponse = regexp.MustCompile(".*sclogin.html*").ReplaceAllString(decodedResponse, "")
-		decodedResponse = regexp.MustCompile(".*index.html*").ReplaceAllString(decodedResponse, "")
-		decodedResponse = regexp.MustCompile(".*?console*").ReplaceAllString(decodedResponse, "")
-		responseLength := len(decodedResponse)
-
-		if debug {
-			fmt.Printf("statusss: (%d)\n", StatusCode)
-			fmt.Printf("responseLength: (%d)\n", responseLength)
-			//fmt.Printf("decodedResponse: (%s)\n", decodedResponse)
-		}
-
-		// if err != nil {
-		// 	fmt.Printf("Error1 %s \n", err)
-
-			if strings.Contains(decodedResponse, "server gave HTTPS response to HTTP client") || strings.Contains(decodedResponse, "speaking plain HTTP to an SSL-enabled server port") {
+			if strings.Contains(decodedHeaderResponse, "server gave HTTPS response to HTTP client") || strings.Contains(decodedResponse, "speaking plain HTTP to an SSL-enabled server port") {
 				// Handling protocol mismatch by switching protocol
 				fmt.Printf("Handling protocol mismatch by switching protocol HTTP to HTTPS\n")
-				urlOriginal = "https://" + rhost + ":" + rport + path
-				continue
+				urlOriginal = "https://" + rhost + ":" + rport + path				
 			}
 
-			if strings.Contains(decodedResponse, "server gave HTTP response to HTTPS client") {
+			if strings.Contains(decodedHeaderResponse, "server gave HTTP response to HTTPS client") || strings.Contains(errStr, "first record does not look like a TLS")  {
 				// Handling protocol mismatch by switching protocol
 				fmt.Printf("Handling protocol mismatch by switching protocol HTTPS to HTTP\n")
-				urlOriginal = "http://" + rhost + ":" + rport + path
-				continue
+				urlOriginal = "http://" + rhost + ":" + rport + path				
 			}
-		//}
+			resp, _, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)
+			decodedHeaderResponse, responseLength = getBody(resp)
+		}
+		///////////////////////////////////
+		
+		if debug {
+			fmt.Printf("statusss: (%d)\n", StatusCode)
+			fmt.Printf("Response length: %d\n", responseLength)
+		}
 
 
 		if urlOriginal != lastURL {
@@ -1544,7 +1572,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 		//###### check redirect with content ##########
 		if StatusCode > 300 && StatusCode <400 {
-			if responseLength > 700 && !strings.Contains(decodedResponse, "noscript") {
+			if responseLength > 700 && !strings.Contains(decodedHeaderResponse, "noscript") {
 				vulnerability = "redirectContent"
 				//break
 			}
@@ -1577,12 +1605,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 		// Si la respuesta tiene 700 o mas, ya estamos en el destino
 		//fmt.Printf("decodedResponse (%s)\n", decodedResponse)
-		if responseLength < 700 {
-			responseHeaders := headerToString(resp.Header)
-			decodedHeaderResponse := responseHeaders + "\n" + decodedResponse
-			// Fix location.href='https://192.168.111.95:8443/index.do"+showPreLogin;
-			decodedHeaderResponse = strings.ReplaceAll(decodedHeaderResponse, "\"+\"", "")
-
+		if responseLength < 700 {			
 
 			redirectURL = getRedirect(decodedHeaderResponse)
 			if debug {
@@ -1617,21 +1640,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			fmt.Printf("urlOriginal en WHILE2 %s\n", urlOriginal)
 		}
 	} //end for
-
-
+	
 	if StatusCode == 404 {
         poweredBy += "|404 not found"
     }
 
-	responseHeaders := headerToString(resp.Header)
-	decodedHeaderResponse := responseHeaders + "\n" + decodedResponse
-	decodedResponse = strings.ReplaceAll(decodedResponse, "'", "\"")
-	decodedResponse = regexp.MustCompile("[^\\x00-\\x7f]").ReplaceAllString(decodedResponse, "")
-	decodedResponse = regexp.MustCompile("/index.php").ReplaceAllString(decodedResponse, "")
-	decodedResponse = strings.ReplaceAll(decodedResponse, "https", "http")
-	decodedResponse = strings.ReplaceAll(decodedResponse, "www.", "")
-	decodedResponse = regexp.MustCompile("admin@example.com").ReplaceAllString(decodedResponse, "")
-	decodedResponse = regexp.MustCompile("postmaster@example.com").ReplaceAllString(decodedResponse, "")
 
 	
 	// ######## write log ######
@@ -1648,9 +1661,8 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 
 	// ############### title ########
-	
-	
-	//fmt.Printf("decodedHeaderResponse %s\n", decodedHeaderResponse)	
+
+	//fmt.Printf("decodedHeaderResponsessss %s\n", decodedHeaderResponse)	
 	title := extractTitle(decodedHeaderResponse)
 	footer := ExtractFooterText(decodedHeaderResponse)
 		
@@ -1732,7 +1744,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	// ########## server ########
 	server := ""
 	re := regexp.MustCompile(`(?i)Server:(.*?)\n`)
-	serverMatch := re.FindStringSubmatch(responseHeaders)
+	serverMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(serverMatch) > 1 {
 		server = serverMatch[1]
 		if debug {
@@ -1865,13 +1877,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		title = "oviyam"
 		poweredBy += "|Medical"
 	}
-
-
 	
-
-
-	
-
 	// ############# powered by ##############
 	re = regexp.MustCompile(`(?i)X-Powered-By:(.*?)\n`)
 	poweredByMatch := re.FindStringSubmatch(decodedHeaderResponse)
@@ -1968,7 +1974,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	}
 
 	re = regexp.MustCompile(`(?i)Via:(.*?)\n`)
-	proxyMatch := re.FindStringSubmatch(responseHeaders)
+	proxyMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(proxyMatch) > 1 {
 		proxy := proxyMatch[1]
 		if len(proxy) > 1 {
@@ -1977,7 +1983,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	}
 
 	re = regexp.MustCompile(`(?i)WWW-Authenticate:(.*?)\n`)
-	authenticateMatch := re.FindStringSubmatch(responseHeaders)
+	authenticateMatch := re.FindStringSubmatch(decodedHeaderResponse)
 	if len(authenticateMatch) > 1 {
 		authenticate := authenticateMatch[1]
 		if len(authenticate) > 1 {
@@ -2073,11 +2079,15 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     }
 
 
-	
-
 	if strings.Contains(decodedHeaderResponse, "</app>")  || strings.Contains(decodedHeaderResponse, "<app-root>")  || strings.Contains(decodedHeaderResponse, `div id="root"`) || strings.Contains(decodedHeaderResponse, "angular.bootstrap")   {
         poweredBy += "|JavascriptFramework"
     }
+
+	if strings.Contains(decodedHeaderResponse, "Powered by VESTA")  {
+        poweredBy += "|VESTA"
+    }
+
+	
 
 	if strings.Contains(decodedHeaderResponse, "Please ensure that the other VPN client pages ") {
         poweredBy += "|VPN"
@@ -2332,13 +2342,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		if title == "</title" {
 			title = "dlink"
 		}
-	}
-
-
-
-	
-
-	
+	}	
 
 	
 	if regexp.MustCompile(`(?i)TP-Link Corporation Limited`).MatchString(decodedHeaderResponse) {

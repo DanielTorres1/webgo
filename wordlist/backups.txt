@@ -13,6 +13,7 @@
 1.sql.tar.bzip2
 back.sql
 _backup
+db/
 .bak
 ~.bak
 1.sql.tar.gz

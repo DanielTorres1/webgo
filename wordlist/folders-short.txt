@@ -13,6 +13,7 @@ pswa
 geoserver/web
 web
 reports/browse/
+WebResource
 sav
 cmg
 intranet
