@@ -2515,17 +2515,14 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				bodyBytes, _ := ioutil.ReadAll(bodyReader)
 				current_status := resp.StatusCode
 				bodyContent := string(bodyBytes)
-
-				// Handle suspended page redirections
-				//fmt.Printf("resp %s\n", resp)
-				//fmt.Printf("current_status %s\n", current_status)
-
+				
 
 				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || 
-				strings.Contains(strings.ToLower(lastURL), "returnurl") || 
-				lastURL == lastURL404 || status404 == 200 {
-					fmt.Printf("Forzando 404\n")
-					current_status = 404					
+					strings.Contains(strings.ToLower(lastURL), "returnurl") || 
+					lastURL == lastURL404 || 
+					(status404 == 200 && !strings.Contains(lastURL404, "404")) {						
+						fmt.Printf("Forzando 404 %s\n", lastURL)
+						current_status = 404
 				}
 
 				// Check for custom 404 errors
@@ -2534,6 +2531,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					lowerBodyContent := strings.ToLower(bodyContent)
 					for _, errorMessage := range errorMessages {
 						if strings.Contains(lowerBodyContent, strings.ToLower(errorMessage)) {
+							fmt.Printf("custom 404 error \n")
 							current_status = 404
 							break
 						}
@@ -2591,8 +2589,9 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"moodlesimple",
 					}
 
-					if containsAny(bodyContent, errors) {
+					if containsAny(bodyContent, errors) && current_status != 500 {
 						if vuln == "" {
+							fmt.Printf("custom 404 error2 \n")
 							current_status = 404
 						}
 					}

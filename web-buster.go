@@ -112,7 +112,7 @@ func main() {
     case "folders":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders.txt", "")
 	case "folders-short":
-        webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders-short.txt", "")
+        webHacks.Dirbuster("/usr/share/webhacks/wordlist/directorios-short.txt", "")
     case "cgi":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/cgi.txt", "")
     case "webserver":

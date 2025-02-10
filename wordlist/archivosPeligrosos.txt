@@ -2,6 +2,12 @@ admin/.env
 config
 level/15/exec/
 admin/env.js
+oauth
+oauth/connect
+oauth/applications
+oauth/authorize
+oauth/token
+jwks.json
 admin/fckeditor/editor/filemanager/browser/default/browser.html 
 admin/fckeditor/editor/filemanager/browser/default/frmupload.html 
 admin/fckeditor/editor/filemanager/upload/test.html
@@ -114,6 +120,7 @@ bin.bak
 book.bak
 _borders
 .cache
+logs
 _cache
 _catalogs
 cgi.bak
