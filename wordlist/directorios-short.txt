@@ -5,6 +5,7 @@ app/
 CVS/
 database/
 backup/
+wordpress/
 db/
 achclient-web/
 dashboard/
