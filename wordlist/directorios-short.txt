@@ -11,6 +11,7 @@ achclient-web/
 dashboard/
 correspondencia/
 Produccion/
+nomercy/
 pswa/
 employees/
 empleados/

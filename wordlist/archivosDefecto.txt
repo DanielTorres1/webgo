@@ -10,6 +10,7 @@ test
 package.json
 phpunit.xml
 phpunit.xml.dist
+robots.txt
 update/access.txt
 CHANGELOG
 CHANGELOGS
