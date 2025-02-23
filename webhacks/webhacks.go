@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"bytes"
+	"path"
 	"log"
 	"encoding/hex"
 	"golang.org/x/net/html"
@@ -405,7 +406,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 	rport := wh.Rport
 	proto := wh.Proto
 	debug := wh.Debug
-	path := wh.Path
+	webpath := wh.Path
 	headers := wh.Headers
 
 	if debug {
@@ -417,9 +418,9 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 	
 	var url string
 	if rport == "80" || rport == "443" {
-		url = fmt.Sprintf("%s://%s%s", proto, rhost, path)
+		url = fmt.Sprintf("%s://%s%s", proto, rhost, webpath)
 	} else {
-		url = fmt.Sprintf("%s://%s:%s%s", proto, rhost, rport, path)
+		url = fmt.Sprintf("%s://%s:%s%s", proto, rhost, rport, webpath)
 	}
 
 	if debug {
@@ -427,7 +428,7 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 		fmt.Printf("user: %s \n", user)
 		fmt.Printf("password: %s \n", password)
 		fmt.Printf("passwordsFile: %s \n", passwordsFile)
-		fmt.Printf("path: %s \n", path)
+		fmt.Printf("path: %s \n", webpath)
 		fmt.Printf("url: %s \n", url)
 	}
 
@@ -1501,15 +1502,15 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	rhost := wh.Rhost
 	rport := wh.Rport
 	proto := wh.Proto
-	path := wh.Path
+	webpath := wh.Path
 
 	poweredBy := ""
 	redirectURL := "no"
 	var urlOriginal string
 	if rport == "443" || rport == "80" {
-		urlOriginal = proto + "://" + rhost + path
+		urlOriginal = proto + "://" + rhost + webpath
 	} else {
-		urlOriginal = proto + "://" + rhost + ":" + rport + path
+		urlOriginal = proto + "://" + rhost + ":" + rport + webpath
 	}
 	var finalURLRedirect string
 	var decodedResponse string
@@ -1547,13 +1548,13 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			if strings.Contains(decodedHeaderResponse, "server gave HTTPS response to HTTP client") || strings.Contains(decodedResponse, "speaking plain HTTP to an SSL-enabled server port") {
 				// Handling protocol mismatch by switching protocol
 				fmt.Printf("Handling protocol mismatch by switching protocol HTTP to HTTPS\n")
-				urlOriginal = "https://" + rhost + ":" + rport + path				
+				urlOriginal = "https://" + rhost + ":" + rport + webpath				
 			}
 
 			if strings.Contains(decodedHeaderResponse, "server gave HTTP response to HTTPS client") || strings.Contains(errStr, "first record does not look like a TLS")  {
 				// Handling protocol mismatch by switching protocol
 				fmt.Printf("Handling protocol mismatch by switching protocol HTTPS to HTTP\n")
-				urlOriginal = "http://" + rhost + ":" + rport + path				
+				urlOriginal = "http://" + rhost + ":" + rport + webpath				
 			}
 			resp, _, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)
 			decodedHeaderResponse, responseLength = getBody(resp)
@@ -2407,7 +2408,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 	show404 := wh.Show404
 	rhost := wh.Rhost
 	rport := wh.Rport
-	path := wh.Path
+	webpath := wh.Path
 	error404 := wh.Error404
 	threads := wh.Threads
 	proto := wh.Proto
@@ -2422,7 +2423,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 		portStr = ":" + rport
 	}
 
-	nonExistentURL1 := proto + "://" + rhost + portStr + path +"0kbjhvhjvjh/"
+	nonExistentURL1 := proto + "://" + rhost + portStr + webpath +"0kbjhvhjvjh/"
 
 	response404, lastURL404, _ := wh.Dispatch(nonExistentURL1, "GET", "", headers)
 	status404 := response404.StatusCode
@@ -2477,7 +2478,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 			portStr = ":" + rport
 		}
 
-		urlFinal := proto + "://" + rhost + portStr + path + urlLine
+		urlFinal := proto + "://" + rhost + portStr + webpath + urlLine
 		links = append(links, urlFinal)
 	}
 
@@ -2485,13 +2486,14 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 	wg.Add(threads)
 
 	urlsChan := make(chan string, len(links))
-
+	printedSizes := make(map[int]bool)
 	// Start a pool of worker goroutines
 	for i := 0; i < threads; i++ {
 		go func() {
 			defer wg.Done()
 			for urlLine := range urlsChan {
 				resp, lastURL, err := wh.Dispatch(urlLine, "GET", "", headers)
+				lastSegment := path.Base(strings.TrimRight(urlLine, "/")) //extract last part 
 				if err != nil {
 					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
 					continue
@@ -2520,8 +2522,11 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || 
 					strings.Contains(strings.ToLower(lastURL), "returnurl") || 
 					lastURL == lastURL404 || 
-					(status404 == 200 && !strings.Contains(lastURL404, "404")) {						
-						fmt.Printf("Forzando 404 %s\n", lastURL)
+					len(bodyContent) == 0 ||
+					(status404 == 200 && !strings.Contains(lastURL404, "404")) {
+						if debug {						
+							fmt.Printf("Forzando 404 lastURL=%s responseLenght=%d\n", lastURL,len(bodyContent))
+						}
 						current_status = 404
 				}
 
@@ -2541,6 +2546,16 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				// Handle 30x redirections
 				if current_status == 302 || current_status == 301 {
 					redirectURL30x := resp.Header.Get("Location")
+
+					if strings.Contains(redirectURL30x, lastSegment) {
+						if debug {
+							fmt.Printf("simple redireccion sin / \n")
+						}
+
+						current_status = 404
+						
+					}
+
 					if strings.Contains(strings.ToLower(redirectURL30x), "login") || strings.Contains(strings.ToLower(redirectURL30x), "default") {
 						if !strings.Contains(redirectURL30x, "#") && !strings.Contains(redirectURL30x, "//") && !strings.Contains(redirectURL30x, "error") {
 							current_status = 200
@@ -2561,6 +2576,8 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"&enckey=",
 						"This is the default text for a report",
 						"Unauthorized Request Blocked",
+						"SessionTimeout",
+						"error_description",
 						"Undefined offset",
 						"Service not found",
 						"Syntax Error",
@@ -2571,6 +2588,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"no endpoint to handle",
 						"Object not found",
 						"page_404",
+						"not-found",
 						"An attack was detected",
 						"Page not found",
 						"Contact support for additional information",
@@ -2591,16 +2609,24 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 
 					if containsAny(bodyContent, errors) && current_status != 500 {
 						if vuln == "" {
-							fmt.Printf("custom 404 error2 \n")
+							if debug {
+								fmt.Printf("custom 404 error2 \n")
+							}							
 							current_status = 404
 						}
 					}
-
-					if vuln != "" {
-						fmt.Printf("%d | %s (vulnerabilidad=%s) | %d\n", current_status, urlLine, vuln, len(bodyContent))
-					} else {
-						fmt.Printf("%d | %s | %d\n", current_status, urlLine, len(bodyContent))
+					
+					contentLength := len(bodyContent)
+					if !printedSizes[contentLength] {
+						if vuln != "" {
+							fmt.Printf("%d | %s (vulnerabilidad=%s) | %d\n", current_status, urlLine, vuln, len(bodyContent))
+						} else {
+							fmt.Printf("%d | %s | %d\n", current_status, urlLine, len(bodyContent))
+						}
+						printedSizes[contentLength] = true
 					}
+
+					
 				}
 			}
 		}()
@@ -2623,7 +2649,7 @@ func (wh *WebHacks) BackupBuster(urlFile string) {
     show404 := wh.Show404
     rhost := wh.Rhost
     rport := wh.Rport
-    path := wh.Path
+    webpath := wh.Path
     error404 := wh.Error404
     threads := wh.Threads
     proto := wh.Proto
@@ -2642,7 +2668,7 @@ func (wh *WebHacks) BackupBuster(urlFile string) {
 		portStr = ":" + rport
 	}
 
-    urlTest := proto + "://" + rhost  + portStr + path + "non-extisss.rar"
+    urlTest := proto + "://" + rhost  + portStr + webpath + "non-extisss.rar"
 
 	resp_test,_, err_test := wh.Dispatch(urlTest, "HEAD", "", headers)
 	if err_test != nil {
@@ -2673,7 +2699,7 @@ func (wh *WebHacks) BackupBuster(urlFile string) {
 		 	portStr = ":" + rport
 		 }
 
-		urlFinal := proto + "://" + rhost  + portStr + path + urlLine
+		urlFinal := proto + "://" + rhost  + portStr + webpath + urlLine
 		links = append(links, urlFinal)
 	}
 
@@ -2736,7 +2762,7 @@ func (wh *WebHacks) ConfigBuster(urlFile string) {
 	error404 := wh.Error404
 	rhost := wh.Rhost
 	rport := wh.Rport
-	path := wh.Path
+	webpath := wh.Path
 	proto := wh.Proto
 	threads := wh.Threads
 
@@ -2769,7 +2795,7 @@ func (wh *WebHacks) ConfigBuster(urlFile string) {
 			for _, backup := range backups {
 				backupURL := fmt.Sprintf(backup, urlLine)
 				backupURL = url.PathEscape(backupURL)
-				finalURL := proto + "://" + rhost + ":" + rport + path + backupURL
+				finalURL := proto + "://" + rhost + ":" + rport + webpath + backupURL
 				resp, _, err := wh.Dispatch(finalURL, "GET", "", headers)
 				if debug {
 					if err != nil {
