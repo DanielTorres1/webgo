@@ -15,6 +15,7 @@ nomercy/
 pswa/
 employees/
 empleados/
+books/
 users/
 geoserver/web/
 uploads/
