@@ -12,6 +12,7 @@ dashboard/
 correspondencia/
 Produccion/
 nomercy/
+backend/
 pswa/
 employees/
 empleados/

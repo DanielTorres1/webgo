@@ -8,6 +8,8 @@ oauth/applications
 oauth/authorize
 oauth/token
 jwks.json
+ajax/pagos.log
+pagos.log
 admin/fckeditor/editor/filemanager/browser/default/browser.html 
 admin/fckeditor/editor/filemanager/browser/default/frmupload.html 
 admin/fckeditor/editor/filemanager/upload/test.html
