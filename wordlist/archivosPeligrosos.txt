@@ -6,8 +6,12 @@ oauth
 oauth/connect
 oauth/applications
 oauth/authorize
+frpc.ini
+api/datasource
+Config.xml
 oauth/token
 jwks.json
+config.auth.json.txt
 ajax/pagos.log
 pagos.log
 admin/fckeditor/editor/filemanager/browser/default/browser.html 
@@ -88,6 +92,11 @@ database.yml
 db.conf
 .passwords
 configgold.json
+migration.log
+wp-content/debug.log
+wp-content/uploads/wpdebug.log
+import-log.txt
+debug.log
 passwords.mdb
 password.sqlite
 passwords.sqlite

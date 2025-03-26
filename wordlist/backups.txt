@@ -32,6 +32,7 @@ db/
 2000.tar.gz
 2000.txt.gz
 2000.zip
+joomla.sql
 2001.7z
 2001.dump.sql
 2001_dump.sql
