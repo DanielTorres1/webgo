@@ -2604,6 +2604,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						"ManageEngine",
 						"ErrorPage",
 						"aspxerrorpath",
+						"does not exist",
 						"moodlesimple",
 					}
 
