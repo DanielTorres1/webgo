@@ -1,3 +1,4 @@
+Changelog
 web.config.txt
 readme.html
 docs/CHANGELOG.txt
@@ -15,6 +16,7 @@ update/access.txt
 CHANGELOG
 CHANGELOGS
 CHANGELOGS.txt
+rest
 README.html
 README
 whoisonline.php

@@ -6,6 +6,7 @@ oauth
 oauth/connect
 oauth/applications
 oauth/authorize
+contribute.json
 frpc.ini
 api/datasource
 Config.xml
@@ -173,6 +174,19 @@ _flash
 .fontconfig
 .forward
 .git/HEAD
+.git-rewrite
+.git/config
+.git/index
+.git/logs/
+.git_release
+.gitattributes
+.gitconfig
+.gitignore
+.gitk
+.gitkeep
+.gitmodules
+.gitreview
+.svnignore
 _int_/devices.html
 .git
 .git2

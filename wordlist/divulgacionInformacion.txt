@@ -6,6 +6,13 @@ access-log.1
 access_log.1
 accounts.xml
 activity.log
+info.php
+infos.php
+manifest.mf
+master.passwd
+moving.page
+phpinfo.php
+phpinfos.php
 admin/access.log
 admin/error.log
 admin/logs/
