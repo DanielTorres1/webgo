@@ -1661,9 +1661,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	// #################
 
 
-	// ############### title ########
-
-	//fmt.Printf("decodedHeaderResponsessss %s\n", decodedHeaderResponse)	
+	// ############### title ########	
 	title := extractTitle(decodedHeaderResponse)
 	footer := ExtractFooterText(decodedHeaderResponse)
 		
@@ -2518,7 +2516,7 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				current_status := resp.StatusCode
 				bodyContent := string(bodyBytes)
 				
-
+				
 				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || 
 					strings.Contains(strings.ToLower(lastURL), "returnurl") || 
 					lastURL == lastURL404 || 
@@ -2570,64 +2568,63 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						vuln = checkVuln(bodyContent, "")
 					}
 
-					errors := []string{
-						"Your access is denied",
-						"error al procesar esta solicitud",
-						"&enckey=",
-						"This is the default text for a report",
-						"Unauthorized Request Blocked",
-						"SessionTimeout",
-						"error_description",
-						"Undefined offset",
-						"Service not found",
-						"Syntax Error",
-						"currently unavailable",
-						"not found",
-						"Request Rejected",
-						"Error de servidor",
-						"no endpoint to handle",
-						"Object not found",
-						"page_404",
-						"not-found",
-						"An attack was detected",
-						"Page not found",
-						"Contact support for additional information",
-						"Ingreso por cuenta",
-						"Invalid token supplied",
-						"No existe el archivo inc.php",
-						"content=\"WordPress",
-						"unexpected problem occurred while processing the request",
-						"intentando ingresar no existe",
-						"error\":\"Error en el metodo",
-						"nx-react-app",
-						"ENTEL S.A.",
-						"ManageEngine",
-						"ErrorPage",
-						"aspxerrorpath",
-						"does not exist",
-						"moodlesimple",
-					}
+					// errors := []string{
+					// 	"Your access is denied",
+					// 	"error al procesar esta solicitud",
+					// 	"&enckey=",
+					// 	"This is the default text for a report",
+					// 	"Unauthorized Request Blocked",
+					// 	"SessionTimeout",
+					// 	"error_description",
+					// 	"Undefined offset",
+					// 	"Service not found",
+					// 	"Syntax Error",
+					// 	"currently unavailable",
+					// 	"not found",
+					// 	"Request Rejected",
+					// 	"Error de servidor",
+					// 	"no endpoint to handle",
+					// 	"Object not found",
+					// 	"page_404",
+					// 	"not-found",
+					// 	"An attack was detected",
+					// 	"Page not found",
+					// 	"Contact support for additional information",
+					// 	"Ingreso por cuenta",
+					// 	"Invalid token supplied",
+					// 	"No existe el archivo inc.php",
+					// 	"content=\"WordPress",
+					// 	"unexpected problem occurred while processing the request",
+					// 	"intentando ingresar no existe",
+					// 	"error\":\"Error en el metodo",
+					// 	"nx-react-app",
+					// 	"ENTEL S.A.",
+					// 	"ManageEngine",
+					// 	"ErrorPage",
+					// 	"aspxerrorpath",
+					// 	"does not exist",
+					// 	"moodlesimple",
+					// }
 
-					if containsAny(bodyContent, errors) && current_status != 500 {
-						if vuln == "" {
-							if debug {
-								fmt.Printf("custom 404 error2 \n")
-							}							
-							current_status = 404
-						}
-					}
+					// if containsAny(bodyContent, errors) && current_status != 500 {
+					// 	if vuln == "" {
+					// 		if debug {
+					// 			fmt.Printf("custom 404 error2 \n")
+					// 		}							
+					// 		current_status = 404
+					// 	}
+					// }
 					
 					contentLength := len(bodyContent)
-					if !printedSizes[contentLength] {
+					
+					//if !printedSizes[contentLength] {
 						if vuln != "" {
 							fmt.Printf("%d | %s (vulnerabilidad=%s) | %d\n", current_status, urlLine, vuln, len(bodyContent))
 						} else {
 							fmt.Printf("%d | %s | %d\n", current_status, urlLine, len(bodyContent))
 						}
 						printedSizes[contentLength] = true
-					}
-
-					
+					//}
 				}
 			}
 		}()
