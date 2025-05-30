@@ -6,6 +6,7 @@ CHANGELOG.txt
 cgi-bin/test-cgi
 changelog
 ChangeLog
+web.config
 .htaccess
 test
 package.json

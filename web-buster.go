@@ -23,7 +23,7 @@ import (
 func main() {
 	var target, port, path, cookie, customDir, proto, mode, error404 string
 	var maxRedirect, threads, timeout int
-	var show404, debug, ajax bool
+	var show404, debug, ajax, filter bool
 
 	flag.StringVar(&target, "target", "", "IP or domain of the web server")
 	flag.StringVar(&port, "port", "80", "Port of the web server")
@@ -39,6 +39,7 @@ func main() {
 	flag.IntVar(&timeout, "timeout", 10, "Timeout")
 	flag.StringVar(&error404, "error404", "", "Error 404 custom message") 
 	flag.BoolVar(&debug, "debug", false, "debug (true=true, false=false)")
+	flag.BoolVar(&filter, "filter", false, "filter (true=true, false=false)")
 	flag.Parse()
 
 	if target == "" {
@@ -53,6 +54,7 @@ func main() {
 		fmt.Println("-cookie : cookie con la que hacer el escaneo ej: PHPSESSION=k35234325")
 		fmt.Println("-error404 : Busca este patrón en la respuesta para determinar si es una página de error 404")
 		fmt.Println("-show404 : mostrar errores 404")
+		fmt.Println("-filter : Do not show reapeated response with same lenght")
 		fmt.Println("-module : Modo. Puede ser:")
 		fmt.Println("    folders: Probar si existen directorios comunes")
 		fmt.Println("    files: Probar si existen directorios comunes")
@@ -94,11 +96,12 @@ func main() {
 	webHacks.Show404 = show404
 	webHacks.Error404 = error404
 	webHacks.Debug = debug
+	webHacks.Filter = filter
 	
 
 	switch mode {
 	case "backups":
-		webHacks.BackupBuster("/usr/share/webhacks/wordlist/backups.txt")
+		webHacks.Dirbuster("/usr/share/webhacks/wordlist/backups.txt","")
 	case "api":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/api.txt", "")
 	case "admin":
@@ -112,7 +115,7 @@ func main() {
     case "folders":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders.txt", "")
 	case "folders-short":
-        webHacks.Dirbuster("/usr/share/webhacks/wordlist/directorios-short.txt", "")
+        webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders-short.txt", "")
     case "cgi":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/cgi.txt", "")
     case "webserver":

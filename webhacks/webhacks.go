@@ -38,9 +38,16 @@ type Client struct {
     LastURL string
 }
 
+type Result struct {
+	Status        int
+	URL           string
+	Vulnerability string
+	ContentLength int
+}	
 
 type WebHacks struct {
 	Debug       bool
+	Filter       bool
 	Show404		bool
 	Rhost       string
 	Rport       string
@@ -99,9 +106,9 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
         }
     } else {
         // Direct connection when not using proxychains
-        //proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+      //  proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
         httpTransport = &http.Transport{
-            //Proxy: http.ProxyURL(proxyURL), //burpsuite
+        //    Proxy: http.ProxyURL(proxyURL), //burpsuite
             TLSClientConfig: &tls.Config{
                 InsecureSkipVerify: true,
                 MinVersion:         tls.VersionTLS10,
@@ -352,8 +359,16 @@ func checkVuln(decodedContent string,title string) string {
 	
 
 	if regexp.MustCompile(`(?i)(?:^|[^a-z])(?:index of|directory of|Index of|Parent directory)(?:[^a-z]|$)`).MatchString(decodedContent) {
-		vuln = "ListadoDirectorios"
+		
+		if regexp.MustCompile(`(?i)(?:^|[^a-z])(?:moodle)(?:[^a-z]|$)`).MatchString(decodedContent) {
+			vuln = "ListadoDirectorios-moodle"
+		}else{
+			vuln = "ListadoDirectorios"
+		}
+
 	}
+
+	
 
 	if regexp.MustCompile(`(?i)HTTP_X_FORWARDED_HOST|HTTP_X_FORWARDED_SERVER\(\)`).MatchString(decodedContent) {
 		vuln = "divulgacionInformacion"
@@ -2403,6 +2418,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 	headers := wh.Headers
 	debug := wh.Debug
+	filter := wh.Filter
 	show404 := wh.Show404
 	rhost := wh.Rhost
 	rport := wh.Rport
@@ -2414,6 +2430,18 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 	timeout := wh.Timeout
 	MaxRedirect := wh.MaxRedirect
 
+	var (
+		resp    *http.Response
+		lastURL string
+		err     error
+		lastURL404 string
+		status404 int
+
+	)
+
+	
+	var results []Result
+
 	// Check for always redirect condition
 	// Append port only if it's not default
 	portStr := ""
@@ -2421,10 +2449,14 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 		portStr = ":" + rport
 	}
 
-	nonExistentURL1 := proto + "://" + rhost + portStr + webpath +"0kbjhvhjvjh/"
+	// nonExistentURL1 := proto + "://" + rhost + portStr + webpath +"0kbjhvhjvjh/"
+	// nonExistentURL2 := proto + "://" + rhost + portStr + webpath +"0kbjhvhjv.php"
 
-	response404, lastURL404, _ := wh.Dispatch(nonExistentURL1, "GET", "", headers)
-	status404 := response404.StatusCode
+	// response404, lastURL404, _ := wh.Dispatch(nonExistentURL1, "GET", "", headers)
+	// status404 := response404.StatusCode
+
+	// response404, lastURL404, _ := wh.Dispatch(nonExistentURL2, "GET", "", headers)
+	// status404 := response404.StatusCode
 
 	if debug {
 		fmt.Printf("Usando archivo: %s con extension (%s)\n", urlFile, extension)		
@@ -2484,13 +2516,19 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 	wg.Add(threads)
 
 	urlsChan := make(chan string, len(links))
-	printedSizes := make(map[int]bool)
 	// Start a pool of worker goroutines
 	for i := 0; i < threads; i++ {
 		go func() {
 			defer wg.Done()
 			for urlLine := range urlsChan {
-				resp, lastURL, err := wh.Dispatch(urlLine, "GET", "", headers)
+				if strings.Contains(urlFile, "backups") {
+					resp, lastURL, err = wh.Dispatch(urlLine, "HEAD", "", headers)
+					// handle resp, lastURL, err if needed
+				} else {
+					resp, lastURL, err = wh.Dispatch(urlLine, "GET", "", headers)
+					// handle resp, lastURL, err if needed
+				}				
+
 				lastSegment := path.Base(strings.TrimRight(urlLine, "/")) //extract last part 
 				if err != nil {
 					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
@@ -2513,17 +2551,27 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				}
 
 				bodyBytes, _ := ioutil.ReadAll(bodyReader)
-				current_status := resp.StatusCode
 				bodyContent := string(bodyBytes)
+
+				current_status := resp.StatusCode
+				contentLength := resp.Header.Get("Content-Length")				
+				contentLengthInt, err := strconv.ParseInt(contentLength, 10, 64)
 				
+				if err != nil || contentLengthInt == 0 {
+					// Si falla la conversión o es 0, usar longitud del cuerpo leído
+					contentLengthInt = int64(len(bodyContent))
+				}
 				
+				// if debug {						
+				// 	fmt.Printf("contentLengthIntL=%s resp.StatusCode=%s\n", contentLengthInt,resp.StatusCode)
+				// }
+
 				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || 
 					strings.Contains(strings.ToLower(lastURL), "returnurl") || 
-					lastURL == lastURL404 || 
-					len(bodyContent) == 0 ||
+					contentLengthInt == 0 ||
 					(status404 == 200 && !strings.Contains(lastURL404, "404")) {
 						if debug {						
-							fmt.Printf("Forzando 404 lastURL=%s responseLenght=%d\n", lastURL,len(bodyContent))
+							fmt.Printf("Forzando 404 lastURL=%s responseLenght=%d\n", lastURL,contentLengthInt)
 						}
 						current_status = 404
 				}
@@ -2614,17 +2662,14 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					// 		current_status = 404
 					// 	}
 					// }
-					
-					contentLength := len(bodyContent)
-					
-					//if !printedSizes[contentLength] {
-						if vuln != "" {
-							fmt.Printf("%d | %s (vulnerabilidad=%s) | %d\n", current_status, urlLine, vuln, len(bodyContent))
-						} else {
-							fmt.Printf("%d | %s | %d\n", current_status, urlLine, len(bodyContent))
-						}
-						printedSizes[contentLength] = true
-					//}
+
+						results = append(results, Result{
+							Status:        current_status,
+							URL:           urlLine,
+							Vulnerability: vuln,
+							ContentLength: int(contentLengthInt),
+						})
+
 				}
 			}
 		}()
@@ -2637,105 +2682,40 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 	close(urlsChan)
 
 	wg.Wait() // Wait for all goroutines to finish
+
+	//Eliminar resultados con la misma longitud de respuesta
+	if filter {
+		results = RemoveDuplicateContentLengths(results)
+	}
+
+	for _, res := range results {
+
+		if res.Vulnerability != "" {					
+					fmt.Printf("%d | %s (vulnerabilidad=%s) | %d\n", res.Status, res.URL, res.Vulnerability, res.ContentLength)
+				} else {
+					fmt.Printf("%d | %s | %d\n", res.Status, res.URL, res.ContentLength)
+				}
+	}
+	
 }
 
-// only HEAD requests
-func (wh *WebHacks) BackupBuster(urlFile string) {
+func RemoveDuplicateContentLengths(results []Result) []Result {
+    // Step 1: Count occurrences of each ContentLength
+    countMap := make(map[int]int)
+    for _, res := range results {
+        countMap[res.ContentLength]++
+    }
 
-	headers := wh.Headers
-    debug := wh.Debug
-    show404 := wh.Show404
-    rhost := wh.Rhost
-    rport := wh.Rport
-    webpath := wh.Path
-    error404 := wh.Error404
-    threads := wh.Threads
-    proto := wh.Proto
-	ajax := wh.Ajax
-	timeout := wh.Timeout
-	MaxRedirect := wh.MaxRedirect
+    // Step 2: Keep only entries with unique ContentLength
+    var uniqueResults []Result
+    for _, res := range results {
+        if countMap[res.ContentLength] == 1 {
+            uniqueResults = append(uniqueResults, res)
+        }
+    }
 
-	if debug {
-		fmt.Printf("Configuracion: Hilos:%s  proto:%s  Ajax: %s error404:%s show404 %s timeout %s debug %s MaxRedirect %s \n\n", threads, proto, ajax, error404, show404,timeout, debug, MaxRedirect)
-	}
-
-	/////// test
-	//adicionar puerto solo si es diferente a 80 o 443
-	portStr := ""
-	if rport != "80" && rport != "443" {
-		portStr = ":" + rport
-	}
-
-    urlTest := proto + "://" + rhost  + portStr + webpath + "non-extisss.rar"
-
-	resp_test,_, err_test := wh.Dispatch(urlTest, "HEAD", "", headers)
-	if err_test != nil {
-		fmt.Printf("Failed to get URL %s: %v\n", urlTest, err_test)
-	}
-	status_test := resp_test.StatusCode
-				
-	if (status_test == 200 ) {
-		fmt.Printf("OK 200 to anything")
-		return
-	}
-	////////////////////////
-
-	file, err := os.Open(urlFile)
-	if err != nil {
-		fmt.Printf("ERROR: Cannot open the file %s\n", urlFile)
-		return
-	}
-	defer file.Close()
-
-	var links []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		urlLine := scanner.Text()
-
-		//adicionar puerto solo si es diferente a 80 o 443
-		 if rport != "80" && rport != "443" {
-		 	portStr = ":" + rport
-		 }
-
-		urlFinal := proto + "://" + rhost  + portStr + webpath + urlLine
-		links = append(links, urlFinal)
-	}
-
-
-	var wg sync.WaitGroup
-	wg.Add(threads)
-
-	urlsChan := make(chan string, len(links))
-	// Start a pool of worker goroutines.
-	for i := 0; i < threads; i++ {
-		go func() {
-			defer wg.Done()
-			for urlLine := range urlsChan {				
-				resp, _, err := wh.Dispatch(urlLine, "HEAD", "", headers)
-				if err != nil {
-					fmt.Printf("Failed to get URL %s: %v\n", urlLine, err)
-					continue
-				}
-				defer resp.Body.Close()
-				current_status := resp.StatusCode
-				
-				if (show404 && current_status == 404) || current_status != 404 {
-
-					fmt.Printf("%d | %s \n", current_status, urlLine)
-				}
-			}
-		}()
-	}
-
-	// Send URLs to the channel for processing by the workers.
-	for _, urlLine := range links {
-		urlsChan <- urlLine
-	}
-	close(urlsChan)
-
-	wg.Wait() // Wait for all goroutines to finish.
+    return uniqueResults
 }
-
 
 func onlyAscii(text string) string {
 	replacements := map[rune]rune{

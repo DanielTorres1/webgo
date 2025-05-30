@@ -15,6 +15,12 @@ jwks.json
 config.auth.json.txt
 ajax/pagos.log
 pagos.log
+ckfinder/ckfinder.html
+filemanager/dialog.php
+kcfinder/browse.php
+filemanager/index.html
+tinyfilemanager.php
+elfinder/elfinder.html
 admin/fckeditor/editor/filemanager/browser/default/browser.html 
 admin/fckeditor/editor/filemanager/browser/default/frmupload.html 
 admin/fckeditor/editor/filemanager/upload/test.html
@@ -82,7 +88,6 @@ passwd.bak
 passwd.txt
 passWD.txt
 Passwd.txt
-password/email
 passwordlist.txt
 admin.txt
 passwordList.txt
@@ -109,7 +114,6 @@ passWord.txt
 Password.txt
 pswa/en-US/logon.aspx
 q/openapi
-register
 searchreplacedb2.php
 .ssh
 reset
@@ -120,7 +124,6 @@ swagger.json
 swagger/index.html
 swagger/swagger-ui.html
 application/configs/application.ini
-password/reset
 access.1
 apis.json
 _archive
@@ -251,7 +254,6 @@ swagger-ui.html
 db/phpminiadmin.php
 phpminiadmin.php
 dbadmin/phpminiadmin.php
-web.config
 telescope
 userlist.txt
 v1/explorer
