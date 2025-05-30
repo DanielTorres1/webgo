@@ -106,12 +106,12 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
         }
     } else {
         // Direct connection when not using proxychains
-      //  proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+        //proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
         httpTransport = &http.Transport{
-        //    Proxy: http.ProxyURL(proxyURL), //burpsuite
+            //Proxy: http.ProxyURL(proxyURL), //burpsuite
             TLSClientConfig: &tls.Config{
                 InsecureSkipVerify: true,
-                MinVersion:         tls.VersionTLS10,
+                MinVersion: tls.VersionTLS10,
             },
             ForceAttemptHTTP2: false,
         }
@@ -338,14 +338,7 @@ func checkVuln(decodedContent string,title string) string {
 		
 	}
 
-	re := regexp.MustCompile(`(?i)(undefined function|already sent by|Undefined offset|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Exception in thread|Exception information)`)
-	match := re.FindStringSubmatch(decodedContent)
-
-	// Si hay una coincidencia, imprimir el término que coincide
-	if len(match) > 0 {
-		//if debug {
-			fmt.Println("Término que coincide:", match[1])
-		//}
+	if regexp.MustCompile(`(?i)(undefined function|already sent by|Undefined offset|Fatal error|Uncaught exception|No such file or directory|Lost connection to MySQL|mysql_select_db|ERROR DE CONSULTA|no se pudo conectar al servidor|Fatal error:|Uncaught Error:|Exception in thread|Exception information)`).MatchString(decodedContent) {
 		vuln = "MensajeError"
 	}
 
@@ -353,7 +346,7 @@ func checkVuln(decodedContent string,title string) string {
 		vuln = "MensajeError"
 	}
 
-	if regexp.MustCompile(`(?i)(Access denied for|r=usuario/create)`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)(Access denied for|r=usuario|r=user)`).MatchString(decodedContent) {
 		vuln = "ExposicionUsuarios"
 	}
 	
@@ -385,7 +378,7 @@ func checkVuln(decodedContent string,title string) string {
 
 	patterns := `(?i)("password":\$|"password":"password|"password=" \+ encodeuricomponent|"password":"http|"password":"Contrase|"password":{required|"passwords":{"password|"password":{"enforced|"password":{"enabled|case "password":|tac@cisco.com|password=pass|password=trial|'password':{'enforced|'password':{'enabled|'passwords':{'password|'password':{required|'password':\$|'password':'password|'password=' \+ encodeuricomponent|'password':'clave|'password':'http|"password":{"laravelValidation")|'&password=' + passHASH`
 	excludedTitles := `(?i)GPON|Cisco switch|Huawei|Terminal|TP-LINK|Zentyal Webmail|Serv-U|dlink`
-	mustMatchPattern := `(?i)"password":|'password':|\&password=`
+	mustMatchPattern := `(?i)"password":|'password':|\&password=|DB_PASSWORD|MAIL_PASSWORD|AUTH_KEY|client_secret`
 
 	contentMatch, _ := regexp.MatchString(patterns, decodedContentLower)
 	titleMatch, _ := regexp.MatchString(excludedTitles, title)
@@ -2562,14 +2555,14 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 					contentLengthInt = int64(len(bodyContent))
 				}
 				
-				// if debug {						
-				// 	fmt.Printf("contentLengthIntL=%s resp.StatusCode=%s\n", contentLengthInt,resp.StatusCode)
-				// }
+				 if debug {						
+				 	fmt.Printf("lastURL=%s contentLengthIntL=%s resp.StatusCode=%s\n",lastURL,contentLengthInt,resp.StatusCode)
+				 }
 
 				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || 
 					strings.Contains(strings.ToLower(lastURL), "returnurl") || 
 					contentLengthInt == 0 ||
-					(status404 == 200 && !strings.Contains(lastURL404, "404")) {
+					(status404 == 200 && !strings.Contains(lastURL, "404")) {
 						if debug {						
 							fmt.Printf("Forzando 404 lastURL=%s responseLenght=%d\n", lastURL,contentLengthInt)
 						}
