@@ -116,6 +116,7 @@ func main() {
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders.txt", "")
 	case "folders-short":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/folders-short.txt", "")
+		
     case "cgi":
         webHacks.Dirbuster("/usr/share/webhacks/wordlist/cgi.txt", "")
     case "webserver":
@@ -141,6 +142,9 @@ func main() {
 	//fuzz with files (with extension)
 	case "php":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/filesEXT.txt", "php")
+
+	case "files-intranet":
+		webHacks.Dirbuster("/usr/share/webhacks/wordlist/files-intranet.txt", "php")		
 	case "aspx":
 		webHacks.Dirbuster("/usr/share/webhacks/wordlist/filesEXT.txt", "aspx")
 	case "jsp":

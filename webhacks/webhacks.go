@@ -106,9 +106,9 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
         }
     } else {
         // Direct connection when not using proxychains
-        //proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+       // proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
         httpTransport = &http.Transport{
-            //Proxy: http.ProxyURL(proxyURL), //burpsuite
+         //   Proxy: http.ProxyURL(proxyURL), //burpsuite
             TLSClientConfig: &tls.Config{
                 InsecureSkipVerify: true,
                 MinVersion: tls.VersionTLS10,
@@ -1512,20 +1512,27 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	proto := wh.Proto
 	webpath := wh.Path
 
+
+
 	poweredBy := ""
 	redirectURL := "no"
 	var urlOriginal string
+	var urlOriginal_nonexist string
 	if rport == "443" || rport == "80" {
 		urlOriginal = proto + "://" + rhost + webpath
+		urlOriginal_nonexist = proto + "://" + rhost + webpath + "acsfsefes.php"
 	} else {
 		urlOriginal = proto + "://" + rhost + ":" + rport + webpath
+		urlOriginal_nonexist = proto + "://" + rhost + ":" + rport + webpath + "acsfsefes.php"
 	}
 	var finalURLRedirect string
 	var decodedResponse string
 	var resp *http.Response
 	var err error
 	var StatusCode int
-	status := ""
+	var vulnerability0 string
+	var poweredBy0 string
+	//status := ""
 	newDomain := ""
 	lastURL := ""
 	vulnerability := ""
@@ -1541,10 +1548,19 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			fmt.Printf("redirect_url en WHILE1 (%s)\n", redirectURL)
 		}
 		resp, _, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)	
-
 		lastURL = resp.Request.URL.String()
 		StatusCode = resp.StatusCode
 		decodedHeaderResponse, responseLength = getBody(resp)
+
+		resp_nonexist, _, _ := wh.Dispatch(urlOriginal_nonexist, "GET", "", wh.Headers)	
+		decodedHeaderResponse_nonexist, _ := getBody(resp_nonexist)
+
+		data0 := ExtractResponseData(decodedHeaderResponse_nonexist,  debug )
+		vulnerability0 = data0["vulnerability"]
+		poweredBy0 = data0["poweredBy"]
+
+		
+
 				
 		//////////////////// protocol error ////////		
 		if err != nil {
@@ -1599,8 +1615,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			poweredBy += "|HTTPSredirect"
 		}
 
-		// Check domain redirect
-		//domainOriginal = origURL.Hostname()
 		domainFinal := finalURL.Hostname()
 		if debug {
 			fmt.Printf("domainOriginal %s domain_final %s\n", domainOriginal, domainFinal)
@@ -1612,7 +1626,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			newDomain = domainFinal
 		}
 
-		// Si la respuesta tiene 700 o mas, ya estamos en el destino
 		//fmt.Printf("decodedResponse (%s)\n", decodedResponse)
 		if responseLength < 700 {			
 
@@ -1657,11 +1670,9 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 	
 	// ######## write log ######
-	// Open the file in append mode. If it doesn't exist, create it with permissions 0644
 	file, _ := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer file.Close()
 
-	// Write the decoded response to the file
 	if _, err := file.WriteString(decodedResponse + "\n"); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: No puedo escribir en el fichero %v\n", err)
 		os.Exit(1) // Exit the program with a non-zero status code
@@ -1669,9 +1680,29 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	// #################
 
 
+
+	data := ExtractResponseData(decodedHeaderResponse,  debug )
+	poweredBy = data["poweredBy"] 
+	data["poweredBy"] = poweredBy + poweredBy0
+	data["vulnerability"] = vulnerability + vulnerability0
+	data["newdomain"] = newDomain            // Final domain after redirects
+
+	// fmt.Println("Extracted Data:")
+	// for key, value := range data {
+	// 	fmt.Printf("  %-12s: %s\n", key, value)
+	// }
+
+	return data, nil
+}
+
+
+func ExtractResponseData(decodedHeaderResponse string,  debug bool) map[string]string{
+
 	// ############### title ########	
 	title := extractTitle(decodedHeaderResponse)
 	footer := ExtractFooterText(decodedHeaderResponse)
+	poweredBy := ""
+	vulnerability := ""
 		
 	if debug {
 		fmt.Printf("title %s\n", title)
@@ -1696,8 +1727,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 			title = "Router cisco"
 		}
 	}
-
-
 	
 	
 	if regexp.MustCompile(`(?i)idrac`).MatchString(decodedHeaderResponse) {
@@ -1748,7 +1777,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		title = "Apache default page"
 	}
 	
-	// ########## server ########
 	server := ""
 	re := regexp.MustCompile(`(?i)Server:(.*?)\n`)
 	serverMatch := re.FindStringSubmatch(decodedHeaderResponse)
@@ -1812,9 +1840,6 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	if regexp.MustCompile(`(?i)In order to access the ShareCenter`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)Cisco Unified Communications`).MatchString(decodedHeaderResponse) {
 		title = "D-Link NAS"
 	} 
-	
-
-	
 	
 	if (regexp.MustCompile(`(?i)custom_logo/web_logo.png|baseProj/images/favicon.ico`).MatchString(decodedHeaderResponse) || regexp.MustCompile(`(?i)webplugin.exe|BackUpBeginTimeChanged|playback_bottom_bar`).MatchString(decodedHeaderResponse)) && regexp.MustCompile(`(?i)WEB SERVICE`).MatchString(decodedHeaderResponse) {
 		server = "Dahua"
@@ -1894,7 +1919,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		poweredBy += pwdby
 	}
 
-	if strings.Contains(decodedHeaderResponse, "laravel_session") || strings.Contains(decodedHeaderResponse, "Laravel Client") {
+	if strings.Contains(decodedHeaderResponse, "laravel_session") ||strings.Contains(decodedHeaderResponse, "laravel CRUD") || strings.Contains(decodedHeaderResponse, "Laravel Client") {
 		re := regexp.MustCompile(`framework_version":"([\d.]+)`)
 		matches := re.FindStringSubmatch(decodedHeaderResponse)
 		if len(matches) >= 2 {
@@ -2222,7 +2247,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
     if regexp.MustCompile(`Powered by Abrenet`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Powered by Abrenet"
     }
-    if regexp.MustCompile(`csrfmiddlewaretoken`).MatchString(decodedHeaderResponse) {
+    if regexp.MustCompile(`csrfmiddlewaretoken|Django`).MatchString(decodedHeaderResponse) {
         poweredBy += "|Django"
     }
     if regexp.MustCompile(`IP Phone`).MatchString(decodedHeaderResponse) {
@@ -2383,9 +2408,9 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	// ##################
 
 	// ######## vulnerability ######
-	if decodedResponse != "" {
-		vulnerability = vulnerability + checkVuln(decodedResponse,title)
-	}
+	//if decodedResponse != "" {
+	vulnerability = vulnerability + checkVuln(decodedHeaderResponse,title)
+	//}
 	
 	
 	if debug {
@@ -2396,16 +2421,13 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	data := map[string]string{
 		"title":         title,
 		"server":        server,
-		"status":        status,
-		"redirect_url":  finalURLRedirect,
-		"last_url":      lastURL,
-		"newdomain":     newDomain,
 		"poweredBy":     poweredBy,
 		"vulnerability": vulnerability,
 		"footer": footer,
 	}
 
-	return data, nil
+	return data
+
 }
 
 func (wh *WebHacks) Dirbuster(urlFile, extension string) {
@@ -2442,14 +2464,6 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 		portStr = ":" + rport
 	}
 
-	// nonExistentURL1 := proto + "://" + rhost + portStr + webpath +"0kbjhvhjvjh/"
-	// nonExistentURL2 := proto + "://" + rhost + portStr + webpath +"0kbjhvhjv.php"
-
-	// response404, lastURL404, _ := wh.Dispatch(nonExistentURL1, "GET", "", headers)
-	// status404 := response404.StatusCode
-
-	// response404, lastURL404, _ := wh.Dispatch(nonExistentURL2, "GET", "", headers)
-	// status404 := response404.StatusCode
 
 	if debug {
 		fmt.Printf("Usando archivo: %s con extension (%s)\n", urlFile, extension)		
@@ -2559,10 +2573,20 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 				 	fmt.Printf("lastURL=%s contentLengthIntL=%s resp.StatusCode=%s\n",lastURL,contentLengthInt,resp.StatusCode)
 				 }
 
-				if strings.Contains(strings.ToLower(lastURL), "suspendedpage") || 
-					strings.Contains(strings.ToLower(lastURL), "returnurl") || 
-					contentLengthInt == 0 ||
-					(status404 == 200 && !strings.Contains(lastURL, "404")) {
+				 if strings.Contains(strings.ToLower(lastURL), "suspendedpage") ||
+				 strings.Contains(strings.ToLower(lastURL), "returnurl") ||
+				 strings.Contains(strings.ToLower(lastURL), "/frmLogin.aspx") ||
+				 strings.Contains(strings.ToLower(lastURL), "/frmLogin.php") ||
+				 strings.Contains(strings.ToLower(lastURL), "/frmLogin.jsp") ||
+				 strings.Contains(strings.ToLower(lastURL), "/frmLogin.asp") ||
+				 strings.Contains(strings.ToLower(lastURL), "/login.aspx?") ||
+				 strings.Contains(strings.ToLower(lastURL), "/login.php?") ||
+				 strings.Contains(strings.ToLower(lastURL), "/login.asp?") ||
+				 strings.Contains(strings.ToLower(lastURL), "/login.jsp?") ||
+				 strings.Contains(strings.ToLower(lastURL), "/login.do?") ||
+				 strings.Contains(strings.ToLower(lastURL), "/login?") ||
+				 strings.Contains(strings.ToLower(lastURL), "redirec") ||
+				 contentLengthInt == 0 || (status404 == 200 && !strings.Contains(lastURL, "404")) {
 						if debug {						
 							fmt.Printf("Forzando 404 lastURL=%s responseLenght=%d\n", lastURL,contentLengthInt)
 						}
@@ -2609,52 +2633,53 @@ func (wh *WebHacks) Dirbuster(urlFile, extension string) {
 						vuln = checkVuln(bodyContent, "")
 					}
 
-					// errors := []string{
-					// 	"Your access is denied",
-					// 	"error al procesar esta solicitud",
-					// 	"&enckey=",
-					// 	"This is the default text for a report",
-					// 	"Unauthorized Request Blocked",
-					// 	"SessionTimeout",
-					// 	"error_description",
-					// 	"Undefined offset",
-					// 	"Service not found",
-					// 	"Syntax Error",
-					// 	"currently unavailable",
-					// 	"not found",
-					// 	"Request Rejected",
-					// 	"Error de servidor",
-					// 	"no endpoint to handle",
-					// 	"Object not found",
-					// 	"page_404",
-					// 	"not-found",
-					// 	"An attack was detected",
-					// 	"Page not found",
-					// 	"Contact support for additional information",
-					// 	"Ingreso por cuenta",
-					// 	"Invalid token supplied",
-					// 	"No existe el archivo inc.php",
-					// 	"content=\"WordPress",
-					// 	"unexpected problem occurred while processing the request",
-					// 	"intentando ingresar no existe",
-					// 	"error\":\"Error en el metodo",
-					// 	"nx-react-app",
-					// 	"ENTEL S.A.",
-					// 	"ManageEngine",
-					// 	"ErrorPage",
-					// 	"aspxerrorpath",
-					// 	"does not exist",
-					// 	"moodlesimple",
-					// }
+					errors := []string{
+						"Your access is denied",
+						"error al procesar esta solicitud",
+						"&enckey=",
+						"This is the default text for a report",
+						"Unauthorized Request Blocked",
+						"SessionTimeout",
+					 	"Error 404",
+						"error_description",
+						"Undefined offset",
+						"Service not found",
+						"Syntax Error",
+						"currently unavailable",
+						"not found",
+						"Request Rejected",
+						"Error de servidor",
+						"no endpoint to handle",
+						"Object not found",
+						"page_404",
+						"not-found",
+						"An attack was detected",
+						"Page not found",
+						"Contact support for additional information",
+						"Ingreso por cuenta",
+						"Invalid token supplied",
+						"No existe el archivo inc.php",
+						"content=\"WordPress",
+						"unexpected problem occurred while processing the request",
+						"intentando ingresar no existe",
+						"error\":\"Error en el metodo",
+						"nx-react-app",
+						"ENTEL S.A.",
+						"ManageEngine",
+						"ErrorPage",
+						"aspxerrorpath",
+						"does not exist",
+						"moodlesimple",
+					}
 
-					// if containsAny(bodyContent, errors) && current_status != 500 {
-					// 	if vuln == "" {
-					// 		if debug {
-					// 			fmt.Printf("custom 404 error2 \n")
-					// 		}							
-					// 		current_status = 404
-					// 	}
-					// }
+					if containsAny(bodyContent, errors) && current_status != 500 {
+						if vuln == "" {
+							if debug {
+								fmt.Printf("custom 404 error2 \n")
+							}							
+							current_status = 404
+						}
+					}
 
 						results = append(results, Result{
 							Status:        current_status,

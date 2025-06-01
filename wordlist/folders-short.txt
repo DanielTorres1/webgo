@@ -1,3 +1,5 @@
+transparencia
+Account/Register
 achclient-web
 admin/files
 app
@@ -8,6 +10,7 @@ register
 backup
 bak
 bck
+descargas
 books
 cacti
 password/email

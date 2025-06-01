@@ -3,6 +3,7 @@ admin.php
 1admin/
 2phpmyadmin/
 acceso/
+manager/login/
 acceso.asp
 ;param=value/manager/html
 acceso.js
@@ -286,6 +287,10 @@ login_db/
 loginflat/
 login.html
 login.php
+frmLogin
+frmLogin.aspx
+frmLogin.asp
+frmLogin.php
 login-redirect/
 logins
 Logins
