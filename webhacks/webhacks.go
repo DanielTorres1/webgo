@@ -106,9 +106,9 @@ func NewWebHacks(timeoutInSeconds, MaxRedirect int) *WebHacks {
         }
     } else {
         // Direct connection when not using proxychains
-       // proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
+        //proxyURL, _ := url.Parse("http://127.0.0.1:8081") // burpsuite
         httpTransport = &http.Transport{
-         //   Proxy: http.ProxyURL(proxyURL), //burpsuite
+            //Proxy: http.ProxyURL(proxyURL), //burpsuite
             TLSClientConfig: &tls.Config{
                 InsecureSkipVerify: true,
                 MinVersion: tls.VersionTLS10,
@@ -299,7 +299,6 @@ func getRedirect(decodedResponse string) string {
 		}
 	}
 
-	// Return empty string if no redirect URL is found
 	return ""
 }
 
@@ -317,7 +316,7 @@ func checkVuln(decodedContent string,title string) string {
 		vuln = "contenidoPrueba"
 	}
 
-	if regexp.MustCompile(`(?i)DEBUG = True|app/controllers|SERVER_ADDR|REMOTE_ADDR|DOCUMENT_ROOT/|TimeoutException|vendor/laravel/framework/src/Illuminate|phpdebugbar`).MatchString(decodedContent) {
+	if regexp.MustCompile(`(?i)DEBUG = True|app/controllers|TimeoutException|vendor/laravel/framework/src/Illuminate|phpdebugbar`).MatchString(decodedContent) {
 		vuln = "debugHabilitado"
 	}
 
@@ -354,7 +353,7 @@ func checkVuln(decodedContent string,title string) string {
 	if regexp.MustCompile(`(?i)(?:^|[^a-z])(?:index of|directory of|Index of|Parent directory)(?:[^a-z]|$)`).MatchString(decodedContent) {
 		
 		if regexp.MustCompile(`(?i)(?:^|[^a-z])(?:moodle)(?:[^a-z]|$)`).MatchString(decodedContent) {
-			vuln = "ListadoDirectorios-moodle"
+			vuln = "ListadoDirectorios~moodle"
 		}else{
 			vuln = "ListadoDirectorios"
 		}
@@ -376,7 +375,7 @@ func checkVuln(decodedContent string,title string) string {
 
 	decodedContentLower := strings.ToLower(decodedContent)
 
-	patterns := `(?i)("password":\$|"password":"password|"password=" \+ encodeuricomponent|"password":"http|"password":"Contrase|"password":{required|"passwords":{"password|"password":{"enforced|"password":{"enabled|case "password":|tac@cisco.com|password=pass|password=trial|'password':{'enforced|'password':{'enabled|'passwords':{'password|'password':{required|'password':\$|'password':'password|'password=' \+ encodeuricomponent|'password':'clave|'password':'http|"password":{"laravelValidation")|'&password=' + passHASH`
+	patterns := `(?i)("password":\$|password": password|"password":{"type|SLACK_CLIENT_SECRET|password': password|password="+pass|password='+pass|"password":"password|"password=" \+ encodeuricomponent|"password":"http|"password":"Contrase|"password":{required|"passwords":{"password|"password":{"enforced|"password":{"enabled|case "password":|tac@cisco.com|password=pass|password=trial|'password':{'enforced|'password':{'enabled|'passwords':{'password|'password':{required|'password':\$|'password':'password|'password=' \+ encodeuricomponent|'password':'clave|'password':'http|"password":{"laravelValidation")|'&password=' + passHASH`
 	excludedTitles := `(?i)GPON|Cisco switch|Huawei|Terminal|TP-LINK|Zentyal Webmail|Serv-U|dlink`
 	mustMatchPattern := `(?i)"password":|'password':|\&password=|DB_PASSWORD|MAIL_PASSWORD|AUTH_KEY|client_secret`
 
@@ -1401,8 +1400,7 @@ func extractTitle(html string) string {
     return ""
 }
 
-
-func ExtractFooterText(htmlContent string) (string) {
+func ExtractFooterText(htmlContent string) string {
     doc, _ := html.Parse(strings.NewReader(htmlContent))
 
     var footerText string
@@ -1438,12 +1436,19 @@ func ExtractFooterText(htmlContent string) (string) {
     }
 
     findFooterText(doc)
-    if footerText == "" {
-        return ""
+
+    // Remove newlines and carriage returns
+    footerText = strings.ReplaceAll(footerText, "\n", " ")
+    footerText = strings.ReplaceAll(footerText, "\r", " ")
+
+    // Truncate to max 200 characters
+    if len(footerText) > 200 {
+        footerText = footerText[:200]
     }
 
     return footerText
 }
+
 
 func stripPort(url string) string {
     parts := strings.Split(url, ":")
@@ -1532,6 +1537,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	var StatusCode int
 	var vulnerability0 string
 	var poweredBy0 string
+	var redirect_url string
 	//status := ""
 	newDomain := ""
 	lastURL := ""
@@ -1556,7 +1562,12 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		decodedHeaderResponse_nonexist, _ := getBody(resp_nonexist)
 
 		data0 := ExtractResponseData(decodedHeaderResponse_nonexist,  debug )
+
+		
 		vulnerability0 = data0["vulnerability"]
+		if vulnerability0 != "" {
+			redirect_url = urlOriginal_nonexist
+		}
 		poweredBy0 = data0["poweredBy"]
 
 		
@@ -1683,9 +1694,15 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 	data := ExtractResponseData(decodedHeaderResponse,  debug )
 	poweredBy = data["poweredBy"] 
-	data["poweredBy"] = poweredBy + poweredBy0
+	if poweredBy != poweredBy0 {
+		data["poweredBy"] = poweredBy + poweredBy0
+	} else {
+		data["poweredBy"] = poweredBy
+	}
+	
 	data["vulnerability"] = vulnerability + vulnerability0
 	data["newdomain"] = newDomain            // Final domain after redirects
+	data["redirect_url"] = redirect_url
 
 	// fmt.Println("Extracted Data:")
 	// for key, value := range data {
@@ -1908,6 +1925,10 @@ func ExtractResponseData(decodedHeaderResponse string,  debug bool) map[string]s
 	if regexp.MustCompile(`(?i)This version of oviyam`).MatchString(decodedHeaderResponse) {
 		title = "oviyam"
 		poweredBy += "|Medical"
+	}
+
+	if regexp.MustCompile(`(?i)moodlesimple`).MatchString(decodedHeaderResponse) {
+		poweredBy += "|Moodle"
 	}
 	
 	// ############# powered by ##############
@@ -2407,10 +2428,7 @@ func ExtractResponseData(decodedHeaderResponse string,  debug bool) map[string]s
 	}
 	// ##################
 
-	// ######## vulnerability ######
-	//if decodedResponse != "" {
 	vulnerability = vulnerability + checkVuln(decodedHeaderResponse,title)
-	//}
 	
 	
 	if debug {
