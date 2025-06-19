@@ -1221,8 +1221,18 @@ func (wh *WebHacks) PasswordTest(options map[string]string) {
 				decodedResponse = string(body)
 			}
 			
+
 			if strings.Contains(strings.ToLower(decodedResponse), "navigation.php") || strings.Contains(strings.ToLower(decodedResponse), "logout.php") || strings.Contains(strings.ToLower(decodedResponse), "information_schema") {
 				fmt.Printf("Password encontrado: [phpmyadmin] %s Usuario:%s Password:%s\n", url, user, password)
+				
+				re := regexp.MustCompile(`db_operations\.php\?[^>]*?db=([^&]+)`)
+				matches := re.FindAllStringSubmatch(decodedResponse, -1)
+				for _, match := range matches {
+					if len(match) > 1 {
+						fmt.Println("db =", match[1])
+					}
+				}
+
 				break
 			}
 		}
