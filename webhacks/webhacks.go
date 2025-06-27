@@ -244,7 +244,7 @@ func (wh *WebHacks) Dispatch(urlLine string, method string, postData string, hea
 
 	
 
-// getRedirect extracts a redirect URL from the decoded HTML response.
+// extracts a redirect URL from the decoded HTML response.
 func getRedirect(decodedResponse string) string {
 	// Define patterns to search for redirect URLs
 	//fmt.Printf("decodedResponse (%s)\n", decodedResponse)
@@ -279,9 +279,11 @@ func getRedirect(decodedResponse string) string {
 		re := regexp.MustCompile(pattern)
 		matches := re.FindStringSubmatch(decodedResponse)
 		if len(matches) > 1 {
-			redirectURL := matches[1]
+			redirect_url := matches[1]
+			//fmt.Println("All Matches:", matches)
+			//fmt.Printf("\nxxxxxxx decodedResponse yyyyyyyyyy: %v\n", decodedResponse)
 			// Check if the redirect URL is incomplete, if so, ignore it
-			if redirectURL == "https:" || redirectURL == "http:" {
+			if redirect_url == "https:" || redirect_url == "http:" {
 				continue
 			}
 			// Check for specific conditions to ignore the redirect URL
@@ -290,12 +292,12 @@ func getRedirect(decodedResponse string) string {
 				continue
 			}
 			// Remove double quotes from the redirect URL
-			redirectURL = regexp.MustCompile(`"`).ReplaceAllString(redirectURL, "")
+			redirect_url = regexp.MustCompile(`"`).ReplaceAllString(redirect_url, "")
 
-			if redirectURL == "login.html" || redirectURL == "../" || redirectURL == "/" || redirectURL == "/public/launchSidebar.jsp" || redirectURL == "/webfig/" || strings.Contains(redirectURL, "Valida") || strings.Contains(redirectURL, "error") || strings.Contains(redirectURL, "microsoftonline") {
-				redirectURL = ""
+			if redirect_url == "login.html" || redirect_url == "../" || redirect_url == "/" || redirect_url == "/public/launchSidebar.jsp" || redirect_url == "/webfig/" || strings.Contains(redirect_url, "Valida") || strings.Contains(redirect_url, "error") || strings.Contains(redirect_url, "microsoftonline") {
+				redirect_url = ""
 			}
-			return redirectURL
+			return redirect_url
 		}
 	}
 
@@ -1504,8 +1506,8 @@ func getBody(resp *http.Response) (string, int) {
 	decodedResponse = strings.ReplaceAll(decodedResponse, "'", "\"")
 	decodedResponse = regexp.MustCompile("[^\\x00-\\x7f]").ReplaceAllString(decodedResponse, "")
 	decodedResponse = regexp.MustCompile("/index.php").ReplaceAllString(decodedResponse, "")
-	decodedResponse = strings.ReplaceAll(decodedResponse, "https", "http")
-	decodedResponse = strings.ReplaceAll(decodedResponse, "www.", "")
+	//decodedResponse = strings.ReplaceAll(decodedResponse, "https", "http")
+	//decodedResponse = strings.ReplaceAll(decodedResponse, "www.", "")
 	decodedResponse = regexp.MustCompile("admin@example.com").ReplaceAllString(decodedResponse, "")
 	decodedResponse = regexp.MustCompile("postmaster@example.com").ReplaceAllString(decodedResponse, "")
 
@@ -1530,7 +1532,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 
 
 	poweredBy := ""
-	redirectURL := "no"
+	redirect_url := "no"
 	var urlOriginal string
 	var urlOriginal_nonexist string
 	if rport == "443" || rport == "80" {
@@ -1547,7 +1549,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	var StatusCode int
 	var vulnerability0 string
 	var poweredBy0 string
-	var redirect_url string
+
 	//status := ""
 	newDomain := ""
 	lastURL := ""
@@ -1558,10 +1560,11 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	origURL, _ := url.Parse(urlOriginal)
 	domainOriginal := origURL.Hostname()
 
-	for redirectURL != "" {
+	for redirect_url != "" {
 		if debug {
+			fmt.Printf("\n ##################### \n")
 			fmt.Printf("urlOriginal (%s)\n", urlOriginal)
-			fmt.Printf("redirect_url en WHILE1 (%s)\n", redirectURL)
+			fmt.Printf("redirect_url en WHILE1 (%s)\n", redirect_url)
 		}
 		resp, _, err = wh.Dispatch(urlOriginal, "GET", "", wh.Headers)	
 		lastURL = resp.Request.URL.String()
@@ -1576,7 +1579,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		
 		vulnerability0 = data0["vulnerability"]
 		if vulnerability0 != "" {
-			redirect_url = urlOriginal_nonexist
+			finalURLRedirect = urlOriginal_nonexist
 		}
 		poweredBy0 = data0["poweredBy"]
 
@@ -1637,6 +1640,38 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		}
 
 		domainFinal := finalURL.Hostname()
+		if domainFinal == "www.gob.pe" {
+			domainFinal = ""
+		}
+		// 	paths := []string{
+		// 		"inicio/",
+		// 		"web/",
+		// 		"inicio/wp-login.php",
+		// 		"web/wp-login.php",
+		// 		"inicio/index.php",
+		// 		"web/index.php",
+		// 		"wp-login.php",
+		// 		"index.php",
+		// 	}
+		
+		// 	for _, path := range paths {
+				
+		// 		resp, _, err := wh.Dispatch(urlOriginal+path, "GET", "", wh.Headers)
+		// 		if err != nil || resp == nil {
+		// 			continue // Si hay error o respuesta nula, seguir con la siguiente ruta
+		// 		}
+		// 		lastURL := resp.Request.URL.String()
+		// 		finalURL, _ := url.Parse(lastURL)
+		// 		domainFinal = finalURL.Hostname()
+		// 		fmt.Printf("111: path %s domainFinal %s\n", urlOriginal+path, domainFinal)
+		
+		// 		if domainFinal == "www.gob.pe" {
+		// 			break
+		// 		}
+		// 	}
+		// }
+		
+
 		if debug {
 			fmt.Printf("domainOriginal %s domain_final %s\n", domainOriginal, domainFinal)
 			fmt.Printf("urlOriginal %s last_url %s\n", urlOriginal, lastURL)
@@ -1650,28 +1685,28 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 		//fmt.Printf("decodedResponse (%s)\n", decodedResponse)
 		if responseLength < 700 {			
 
-			redirectURL = getRedirect(decodedHeaderResponse)
+			redirect_url = getRedirect(decodedHeaderResponse)
 			if debug {
-				fmt.Printf("redirect_url (%s)\n", redirectURL)
+				fmt.Printf("redirect_url (%s)\n", redirect_url)
 				//fmt.Printf("decodedHeaderResponse (%s)\n", decodedHeaderResponse)
 			}
 		} else {
-			redirectURL = ""
+			redirect_url = ""
 		}
 
-		if redirectURL != "" {
+		if redirect_url != "" {
 			// redirect is URL complete
-			if strings.Contains(redirectURL, "http") {
-				finalURLRedirect = redirectURL
+			if strings.Contains(redirect_url, "http") {
+				finalURLRedirect = redirect_url
 			} else { // redirect is only url part
-				firstChar := redirectURL[:1]
+				firstChar := redirect_url[:1]
 				if debug {
 					fmt.Printf("firstChar %s\n", firstChar)
 				}
 				if firstChar == "/" {
-					finalURLRedirect = urlOriginal + redirectURL[1:]
+					finalURLRedirect = urlOriginal + redirect_url[1:]
 				} else {
-					finalURLRedirect = urlOriginal + redirectURL
+					finalURLRedirect = urlOriginal + redirect_url
 				}
 			}
 			if debug {
@@ -1712,7 +1747,7 @@ func (wh *WebHacks) GetData(logFile string) (map[string]string, error) {
 	
 	data["vulnerability"] = vulnerability + vulnerability0
 	data["newdomain"] = newDomain            // Final domain after redirects
-	data["redirect_url"] = redirect_url
+	data["redirect_url"] = finalURLRedirect
 
 	// fmt.Println("Extracted Data:")
 	// for key, value := range data {

@@ -58,6 +58,7 @@ func main() {
 	server := data["server"]
 	status := data["status"]
 	redirectURL := data["redirect_url"]
+
 	lastURL := data["last_url"]
 	newDomain := data["newdomain"]
 	vulnerability := data["vulnerability"]

@@ -36,7 +36,7 @@ func main() {
 	flag.BoolVar(&ajax, "ajax", false, "AJAX (true=true, false=false)")
 	flag.StringVar(&mode, "module", "", "Mode")
 	flag.IntVar(&threads, "threads", 1, "Threads")
-	flag.IntVar(&timeout, "timeout", 10, "Timeout")
+	flag.IntVar(&timeout, "timeout", 15, "Timeout")
 	flag.StringVar(&error404, "error404", "", "Error 404 custom message") 
 	flag.BoolVar(&debug, "debug", false, "debug (true=true, false=false)")
 	flag.BoolVar(&filter, "filter", false, "filter (true=true, false=false)")
