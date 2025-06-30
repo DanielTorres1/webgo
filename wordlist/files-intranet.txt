@@ -372,8 +372,6 @@ index.EXT4
 index.EXT5
 index.EXT/login/
 index-test.EXT
-info.EXT
-infos.EXT
 ingresa.EXT
 inicio.EXT
 installation.EXT

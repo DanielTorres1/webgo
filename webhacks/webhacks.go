@@ -364,14 +364,15 @@ func checkVuln(decodedContent string,title string) string {
 
 	
 
-	if regexp.MustCompile(`(?i)HTTP_X_FORWARDED_HOST|HTTP_X_FORWARDED_SERVER\(\)`).MatchString(decodedContent) {
-		vuln = "divulgacionInformacion"
+	if regexp.MustCompile(`(?i)HTTP_X_FORWARDED_HOST|HTTP_X_FORWARDED_SERVER\(\)|Configuration File \(php.ini\) Path`).MatchString(decodedContent) {
+		vuln = "phpinfo"
 	}
 
 	if regexp.MustCompile(`(?i)/var/www/html|/usr/local/apache2/htdocs/|C:/xampp/htdocs/|C:/wamp64/www/|/var/www/nginx-default|/usr/share/nginx/html`).MatchString(decodedContent) &&
 		!regexp.MustCompile(`(?i)Default Page`).MatchString(decodedContent) &&
 		!regexp.MustCompile(`(?i)Server Manager`).MatchString(decodedContent) &&
-		!regexp.MustCompile(`(?i)TEST PAGE`).MatchString(decodedContent) {
+		!regexp.MustCompile(`(?i)TEST PAGE`).MatchString(decodedContent) &&
+		!regexp.MustCompile(`(?i)PHP Version`).MatchString(decodedContent)  {
 		vuln = "FPD"
 	}
 

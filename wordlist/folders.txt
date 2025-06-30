@@ -2410,7 +2410,6 @@ inetpub
 inetsrv
 inf
 info
-info.php
 informacion
 informador
 informante
@@ -3636,9 +3635,6 @@ phpBB3
 php-bin
 php-cgi
 phpEventCalendar
-phpinfo
-phpinfo.php
-phpinfos
 php.ini
 phpldapadmin
 phplist
