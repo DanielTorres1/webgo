@@ -78,7 +78,7 @@ func main() {
 	}
 
 	if newDomain != "" {
-		fmt.Printf("%s~%s~%s~%s~%s~%s~%s~^Dominio identificado^%s\n", title, server, status, redirectURL, lastURL, poweredBy, vulnerability, newDomain)
+		fmt.Printf("%s~%s~%s~%s~%s~%s~%s~^Dominio identificado^%s^\n", title, server, status, redirectURL, lastURL, poweredBy, vulnerability, newDomain)
 	} else {
 		fmt.Printf("%s~%s~%s~%s~%s~%s~%s~%s\n", title, server, status, redirectURL, lastURL, poweredBy,footer, vulnerability)
 	}
